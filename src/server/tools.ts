@@ -1,163 +1,211 @@
-import { Server } from '@modelcontextprotocol/sdk/server';
-import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { SearchProvider, ProcessingProvider, EnhancementProvider, BaseSearchParams } from '../common/types.js';
+import { create_error_response } from '../common/utils.js';
 
-// Import provider tools
-import { register_search_tools } from '../providers/search';
-import { register_ai_response_tools } from '../providers/ai_response';
-import { register_processing_tools } from '../providers/processing';
-import { register_enhancement_tools } from '../providers/enhancement';
+class ToolRegistry {
+  private search_providers: Map<string, SearchProvider> = new Map();
+  private processing_providers: Map<string, ProcessingProvider> = new Map();
+  private enhancement_providers: Map<string, EnhancementProvider> = new Map();
+
+  register_search_provider(provider: SearchProvider) {
+    this.search_providers.set(provider.name, provider);
+  }
+
+  register_processing_provider(provider: ProcessingProvider) {
+    this.processing_providers.set(provider.name, provider);
+  }
+
+  register_enhancement_provider(provider: EnhancementProvider) {
+    this.enhancement_providers.set(provider.name, provider);
+  }
+
+  setup_tool_handlers(server: Server) {
+    // Register tool list handler
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: [
+        ...Array.from(this.search_providers.values()).map((provider) => ({
+          name: `${provider.name}_search`,
+          description: provider.description,
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'Search query',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of results to return',
+                minimum: 1,
+                maximum: 50,
+              },
+              include_domains: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of domains to include in search results',
+              },
+              exclude_domains: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of domains to exclude from search results',
+              },
+            },
+            required: ['query'],
+          },
+        })),
+        ...Array.from(this.processing_providers.values()).map((provider) => ({
+          name: `${provider.name}_process`,
+          description: provider.description,
+          inputSchema: {
+            type: 'object',
+            properties: {
+              url: {
+                type: 'string',
+                description: 'URL to process',
+              },
+            },
+            required: ['url'],
+          },
+        })),
+        ...Array.from(this.enhancement_providers.values()).map((provider) => ({
+          name: `${provider.name}_enhance`,
+          description: provider.description,
+          inputSchema: {
+            type: 'object',
+            properties: {
+              content: {
+                type: 'string',
+                description: 'Content to enhance',
+              },
+            },
+            required: ['content'],
+          },
+        })),
+      ],
+    }));
+
+    // Register tool call handler
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      try {
+        const [provider_name, action] = request.params.name.split('_');
+        const args = request.params.arguments;
+
+        if (!args || typeof args !== 'object') {
+          return {
+            content: [{ type: 'text', text: 'Missing or invalid arguments' }],
+            isError: true,
+          };
+        }
+
+        switch (action) {
+          case 'search': {
+            const provider = this.search_providers.get(provider_name);
+            if (!provider) {
+              return {
+                content: [{ type: 'text', text: `Unknown search provider: ${provider_name}` }],
+                isError: true,
+              };
+            }
+
+            // Type guard for search parameters
+            if (!('query' in args) || typeof args.query !== 'string') {
+              return {
+                content: [{ type: 'text', text: 'Missing or invalid query parameter' }],
+                isError: true,
+              };
+            }
+
+            const search_params: BaseSearchParams = {
+              query: args.query,
+              limit: typeof args.limit === 'number' ? args.limit : undefined,
+              include_domains: Array.isArray(args.include_domains) ? args.include_domains : undefined,
+              exclude_domains: Array.isArray(args.exclude_domains) ? args.exclude_domains : undefined,
+            };
+
+            const results = await provider.search(search_params);
+            return {
+              content: [{ type: 'text', text: JSON.stringify(results, null, 2) }],
+            };
+          }
+
+          case 'process': {
+            const provider = this.processing_providers.get(provider_name);
+            if (!provider) {
+              return {
+                content: [{ type: 'text', text: `Unknown processing provider: ${provider_name}` }],
+                isError: true,
+              };
+            }
+
+            if (!('url' in args) || typeof args.url !== 'string') {
+              return {
+                content: [{ type: 'text', text: 'Missing or invalid URL parameter' }],
+                isError: true,
+              };
+            }
+
+            const result = await provider.process_content(args.url);
+            return {
+              content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+            };
+          }
+
+          case 'enhance': {
+            const provider = this.enhancement_providers.get(provider_name);
+            if (!provider) {
+              return {
+                content: [{ type: 'text', text: `Unknown enhancement provider: ${provider_name}` }],
+                isError: true,
+              };
+            }
+
+            if (!('content' in args) || typeof args.content !== 'string') {
+              return {
+                content: [{ type: 'text', text: 'Missing or invalid content parameter' }],
+                isError: true,
+              };
+            }
+
+            const result = await provider.enhance_content(args.content);
+            return {
+              content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+            };
+          }
+
+          default:
+            return {
+              content: [{ type: 'text', text: `Unknown action: ${action}` }],
+              isError: true,
+            };
+        }
+      } catch (error) {
+        const error_response = create_error_response(error as Error);
+        return {
+          content: [{ type: 'text', text: error_response.error }],
+          isError: true,
+        };
+      }
+    });
+  }
+}
+
+// Create singleton instance
+const registry = new ToolRegistry();
 
 export const register_tools = (server: Server) => {
-  // Register all provider tools
-  register_search_tools(server);
-  register_ai_response_tools(server);
-  register_processing_tools(server);
-  register_enhancement_tools(server);
+  registry.setup_tool_handlers(server);
+};
 
-  // Set up tool listing handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
-      // Search Tools
-      {
-        name: 'search_tavily',
-        description: 'Search the web using Tavily Search API. Best for factual queries requiring reliable sources and citations. Provides high-quality results for technical, scientific, and academic topics.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search query'
-            }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'search_brave',
-        description: 'Privacy-focused web search with good coverage of technical topics. Uses Brave Search API for results without tracking or profiling.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search query'
-            }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'search_kagi',
-        description: 'High-quality search results with minimal advertising influence. Best for finding authoritative sources and research materials.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search query'
-            },
-            language: {
-              type: 'string',
-              description: 'Language filter (e.g., "en")'
-            },
-            no_cache: {
-              type: 'boolean',
-              description: 'Bypass cache for fresh results'
-            }
-          },
-          required: ['query']
-        }
-      },
+// Export methods to register providers
+export const register_search_provider = (provider: SearchProvider) => {
+  registry.register_search_provider(provider);
+};
 
-      // AI Response Tools
-      {
-        name: 'ai_perplexity',
-        description: 'AI-powered response generation combining real-time web search with advanced language models (GPT-4 Omni, Claude 3). Best for complex queries requiring reasoning and synthesis across multiple sources. Features contextual memory for follow-up questions.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Question or topic for AI response'
-            }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'ai_kagi_fastgpt',
-        description: 'Quick AI-generated answers with citations, optimized for rapid response (900ms typical start time). Runs full search underneath for enriched answers.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Question for quick AI response'
-            }
-          },
-          required: ['query']
-        }
-      },
+export const register_processing_provider = (provider: ProcessingProvider) => {
+  registry.register_processing_provider(provider);
+};
 
-      // Content Processing Tools
-      {
-        name: 'process_jina_reader',
-        description: 'Converts any URL to clean, LLM-friendly text. Features automatic image captioning and native PDF support. Optimized for high-quality content extraction from complex web pages.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            url: {
-              type: 'string',
-              description: 'URL to process'
-            }
-          },
-          required: ['url']
-        }
-      },
-      {
-        name: 'process_kagi_summarizer',
-        description: 'Instantly summarizes content of any type and length from URLs. Supports pages, videos, and podcasts with transcripts.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            url: {
-              type: 'string',
-              description: 'URL to summarize'
-            }
-          },
-          required: ['url']
-        }
-      },
-
-      // Enhancement Tools
-      {
-        name: 'enhance_kagi_enrichment',
-        description: 'Provides supplementary content from specialized indexes (Teclis for web, TinyGem for news). Ideal for discovering non-mainstream results.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Query for enrichment'
-            }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'enhance_jina_grounding',
-        description: 'Real-time fact verification against web knowledge. Reduces hallucinations and improves content integrity through statement verification.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            statement: {
-              type: 'string',
-              description: 'Statement to verify'
-            }
-          },
-          required: ['statement']
-        }
-      }
-    ]
-  }));
+export const register_enhancement_provider = (provider: EnhancementProvider) => {
+  registry.register_enhancement_provider(provider);
 };

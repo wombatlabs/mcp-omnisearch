@@ -1,36 +1,83 @@
-import { Server } from '@modelcontextprotocol/sdk/server';
-import { CallToolRequestSchema, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types';
-
-// Import provider handlers
-import { handle_search_request } from '../providers/search';
-import { handle_ai_response_request } from '../providers/ai_response';
-import { handle_processing_request } from '../providers/processing';
-import { handle_enhancement_request } from '../providers/enhancement';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import {
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 
 export const setup_handlers = (server: Server) => {
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
+  // List available resources
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [
+      {
+        uri: 'omnisearch://providers/status',
+        name: 'Provider Status',
+        mimeType: 'application/json',
+        description: 'Current status of all search providers',
+      },
+    ],
+  }));
 
-    // Route to appropriate handler based on tool name prefix
-    if (name.startsWith('search_')) {
-      return handle_search_request(name, args);
-    }
-    
-    if (name.startsWith('ai_')) {
-      return handle_ai_response_request(name, args);
-    }
-    
-    if (name.startsWith('process_')) {
-      return handle_processing_request(name, args);
-    }
-    
-    if (name.startsWith('enhance_')) {
-      return handle_enhancement_request(name, args);
+  // List resource templates
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+    resourceTemplates: [
+      {
+        uriTemplate: 'omnisearch://search/{provider}/info',
+        name: 'Search Provider Info',
+        mimeType: 'application/json',
+        description: 'Information about a specific search provider',
+      },
+    ],
+  }));
+
+  // Handle resource reads
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const { uri } = request.params;
+
+    // Handle provider status resource
+    if (uri === 'omnisearch://providers/status') {
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({
+              status: 'operational',
+              providers: {
+                search: ['tavily', 'brave', 'kagi'],
+                ai_response: ['perplexity'],
+                processing: ['jina_reader', 'kagi_summarizer'],
+                enhancement: ['jina_grounding', 'kagi_enrichment'],
+              },
+            }, null, 2),
+          },
+        ],
+      };
     }
 
-    throw new McpError(
-      ErrorCode.MethodNotFound,
-      `Unknown tool: ${name}`
-    );
+    // Handle provider info template
+    const providerMatch = uri.match(/^omnisearch:\/\/search\/([^/]+)\/info$/);
+    if (providerMatch) {
+      const providerName = providerMatch[1];
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({
+              name: providerName,
+              status: 'active',
+              capabilities: ['web_search', 'news_search'],
+              rate_limits: {
+                requests_per_minute: 60,
+                requests_per_day: 1000,
+              },
+            }, null, 2),
+          },
+        ],
+      };
+    }
+
+    throw new Error(`Unknown resource URI: ${uri}`);
   });
 };

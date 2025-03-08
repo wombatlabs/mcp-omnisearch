@@ -1,28 +1,76 @@
-import { Server } from '@modelcontextprotocol/sdk/server';
+// Common type definitions for the MCP Omnisearch server
 
-export interface SearchArgs {
-  query: string;
-}
-
-export interface ProcessingArgs {
+export interface SearchResult {
+  title: string;
   url: string;
+  snippet: string;
+  score?: number;
+  source_provider: string;
 }
 
-export interface EnhancementArgs {
-  query?: string;
-  statement?: string;
+export interface BaseSearchParams {
+  query: string;
+  limit?: number;
+  include_domains?: string[];
+  exclude_domains?: string[];
 }
 
-export interface ProviderResponse {
-  content: Array<{
+export interface ProcessingResult {
+  content: string;
+  metadata: {
+    title?: string;
+    author?: string;
+    date?: string;
+    word_count?: number;
+  };
+  source_provider: string;
+}
+
+export interface EnhancementResult {
+  original_content: string;
+  enhanced_content: string;
+  enhancements: {
     type: string;
-    text: string;
-  }>;
-  isError?: boolean;
+    description: string;
+  }[];
+  source_provider: string;
 }
 
-export type ProviderHandler = (args: any) => Promise<ProviderResponse>;
+// Provider interfaces
+export interface SearchProvider {
+  search(params: BaseSearchParams): Promise<SearchResult[]>;
+  name: string;
+  description: string;
+}
 
-export interface ProviderRegistration {
-  (server: Server): void;
+export interface ProcessingProvider {
+  process_content(url: string): Promise<ProcessingResult>;
+  name: string;
+  description: string;
+}
+
+export interface EnhancementProvider {
+  enhance_content(content: string): Promise<EnhancementResult>;
+  name: string;
+  description: string;
+}
+
+// Error types
+export enum ErrorType {
+  API_ERROR = 'API_ERROR',
+  RATE_LIMIT = 'RATE_LIMIT',
+  INVALID_INPUT = 'INVALID_INPUT',
+  PROVIDER_ERROR = 'PROVIDER_ERROR',
+}
+
+export class ProviderError extends Error {
+  constructor(
+    public type: ErrorType,
+    message: string,
+    public provider: string,
+    public details?: any
+  ) {
+    super(message);
+    this.name = 'ProviderError';
+  }
 }
