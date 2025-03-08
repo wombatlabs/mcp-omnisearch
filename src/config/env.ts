@@ -21,7 +21,7 @@ export const config = {
 		},
 		brave: {
 			api_key: BRAVE_API_KEY,
-			base_url: 'https://api.search.brave.com/v1',
+			base_url: 'https://api.search.brave.com/res/v1',
 			timeout: 10000, // 10 seconds
 		},
 		kagi: {
