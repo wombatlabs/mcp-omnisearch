@@ -16,7 +16,7 @@ export const config = {
 	search: {
 		tavily: {
 			api_key: TAVILY_API_KEY,
-			base_url: 'https://api.tavily.com/v1',
+			base_url: 'https://api.tavily.com',
 			timeout: 30000, // 30 seconds
 		},
 		brave: {
