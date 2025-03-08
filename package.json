@@ -1,0 +1,41 @@
+{
+  "name": "mcp-omnisearch",
+  "version": "0.0.0",
+  "description": "MCP server for integrating Omnisearch with LLMs",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mcp-omnisearch": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "start": "node dist/index.js",
+    "dev": "npx @modelcontextprotocol/inspector dist/index.js",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm run build && changeset publish"
+  },
+  "keywords": [
+    "mcp",
+    "search",
+    "ai",
+    "model-context-protocol",
+    "web-search"
+  ],
+  "author": "Scott Spence",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.6.1"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.28.1",
+    "@types/node": "^22.13.8",
+    "typescript": "^5.8.2"
+  }
+}
