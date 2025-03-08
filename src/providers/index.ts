@@ -20,8 +20,7 @@ export const initialize_providers = () => {
 	register_search_provider(new KagiSearchProvider());
 
 	// Initialize AI response providers
-	const perplexity = new PerplexityProvider();
-	// Note: Perplexity provider is initialized but not registered as it uses a custom interface
+	register_search_provider(new PerplexityProvider());
 
 	// Initialize processing providers
 	register_processing_provider(new JinaReaderProvider());
