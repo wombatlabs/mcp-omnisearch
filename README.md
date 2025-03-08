@@ -14,8 +14,8 @@ enhancement features through a single interface.
   citation support
 - **Brave Search**: Privacy-focused search with good technical content
   coverage
-- **Kagi Search**: High-quality search results with minimal advertising
-  influence, focused on authoritative sources
+- **Kagi Search**: High-quality search results with minimal
+  advertising influence, focused on authoritative sources
 
 ### 🤖 AI Response Tools
 
@@ -137,7 +137,8 @@ Example:
 
 #### search_kagi
 
-High-quality search results with minimal advertising influence. Best for finding authoritative sources and research materials.
+High-quality search results with minimal advertising influence. Best
+for finding authoritative sources and research materials.
 
 Parameters:
 
