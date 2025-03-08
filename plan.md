@@ -48,6 +48,11 @@ graph TD
 
    - Registers all search providers with clear, detailed descriptions
    - Highlights strengths and best-use cases for each provider
+   - Handles provider names with underscores by splitting from right
+   - Tool names follow pattern: provider*name + "*" + action Example:
+     "kagi_fastgpt_search" splits into:
+     - provider_name: "kagi_fastgpt"
+     - action: "search"
 
 3. **Provider Implementation**
 
@@ -262,10 +267,12 @@ Next steps for implementing each provider:
      - ✓ Configure for sonar-pro model with online search
      - ✓ Successfully tested implementation
      - Note: Citations require elevated API access
-   - [ ] Kagi FastGPT
-     - Implement FastGPT API
-     - Add citation handling
-     - Add error handling
+   - [x] Kagi FastGPT ✓
+     - ✓ Implement FastGPT API with proper error handling
+     - ✓ Add citation handling through references
+     - ✓ Successfully tested with real queries
+     - Note: Required special handling in ToolRegistry for provider
+       names containing underscores
 
 3. **Content Processing**
 

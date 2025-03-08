@@ -108,8 +108,10 @@ class ToolRegistry {
 			CallToolRequestSchema,
 			async (request) => {
 				try {
-					const [provider_name, action] =
-						request.params.name.split('_');
+					// Split from the right to handle provider names that contain underscores
+					const parts = request.params.name.split('_');
+					const action = parts.pop()!; // Get last part as action
+					const provider_name = parts.join('_'); // Join remaining parts as provider name
 					const args = request.params.arguments;
 
 					if (!args || typeof args !== 'object') {

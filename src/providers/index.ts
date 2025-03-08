@@ -1,3 +1,4 @@
+import { KagiFastGPTProvider } from './ai_response/kagi_fastgpt/index.js';
 import { PerplexityProvider } from './ai_response/perplexity/index.js';
 import { JinaGroundingProvider } from './enhancement/jina_grounding/index.js';
 import { KagiEnrichmentProvider } from './enhancement/kagi_enrichment/index.js';
@@ -19,8 +20,9 @@ export const initialize_providers = () => {
 	register_search_provider(new BraveSearchProvider());
 	register_search_provider(new KagiSearchProvider());
 
-	// Initialize AI response providers
-	register_search_provider(new PerplexityProvider());
+	// Initialize AI response providers (using SearchProvider interface for result compatibility)
+	register_search_provider(new PerplexityProvider()); // AI response provider
+	register_search_provider(new KagiFastGPTProvider()); // AI response provider
 
 	// Initialize processing providers
 	register_processing_provider(new JinaReaderProvider());
@@ -33,7 +35,9 @@ export const initialize_providers = () => {
 	// Log initialization
 	console.error('Initialized providers:');
 	console.error('- Search: Tavily, Brave, Kagi');
-	console.error('- AI Response: Perplexity');
+	console.error(
+		'- AI Response: Perplexity, Kagi FastGPT (registered as search providers for interface compatibility)',
+	);
 	console.error('- Processing: Jina Reader, Kagi Summarizer');
 	console.error('- Enhancement: Jina Grounding, Kagi Enrichment');
 };
