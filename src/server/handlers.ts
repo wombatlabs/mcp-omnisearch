@@ -51,7 +51,7 @@ export const setup_handlers = (server: Server) => {
 									status: 'operational',
 									providers: {
 										search: ['tavily', 'brave', 'kagi'],
-										ai_response: ['perplexity'],
+										ai_response: ['perplexity', 'kagi_fastgpt'],
 										processing: ['jina_reader', 'kagi_summarizer'],
 										enhancement: [
 											'jina_grounding',

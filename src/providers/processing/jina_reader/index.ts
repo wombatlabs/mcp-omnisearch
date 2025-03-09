@@ -1,126 +1,103 @@
 import {
+	ErrorType,
 	ProcessingProvider,
 	ProcessingResult,
+	ProviderError,
 } from '../../../common/types.js';
 import {
 	is_valid_url,
+	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
 import { config } from '../../../config/env.js';
 
-export interface JinaReaderOptions {
-	with_images?: boolean;
-	with_links?: boolean;
-	with_iframe?: boolean;
-	with_shadow_dom?: boolean;
-	timeout?: number;
-	wait_for_selector?: string;
-	remove_selector?: string;
-}
-
 export class JinaReaderProvider implements ProcessingProvider {
 	name = 'jina_reader';
 	description =
-		'Converts any URL to clean, LLM-friendly text. Features automatic image captioning and native PDF support. Optimized for high-quality content extraction from complex web pages.';
+		'Convert any URL to clean, LLM-friendly text using Jina Reader API';
 
-	async process_content(
-		url: string,
-		options: JinaReaderOptions = {},
-	): Promise<ProcessingResult> {
-		const api_key = validate_api_key(
-			config.processing.jina_reader.api_key,
-			this.name,
-		);
+	constructor() {
+		// Validate API key exists at construction time
+		validate_api_key(config.processing.jina_reader.api_key, this.name);
+	}
 
+	async process_content(url: string): Promise<ProcessingResult> {
 		if (!is_valid_url(url)) {
-			throw new Error('Invalid URL provided');
+			throw new ProviderError(
+				ErrorType.INVALID_INPUT,
+				'Invalid URL provided',
+				this.name,
+			);
 		}
 
-		const default_options: JinaReaderOptions = {
-			with_images: true,
-			with_links: true,
-			with_iframe: false,
-			with_shadow_dom: false,
-			timeout: 30000,
-		};
+		const process_url = async () => {
+			const api_key = validate_api_key(
+				config.processing.jina_reader.api_key,
+				this.name,
+			);
 
-		const final_options = { ...default_options, ...options };
+			const headers: HeadersInit = {
+				'Authorization': `Bearer ${api_key}`,
+				'Accept': 'application/json',
+				'Content-Type': 'application/json',
+			};
 
-		// TODO: Implement actual API call
-		// This is a placeholder implementation
-		return {
-			content: 'Example processed content from URL',
-			metadata: {
-				title: 'Example Page Title',
-				author: 'Example Author',
-				date: new Date().toISOString(),
-				word_count: 500,
-			},
-			source_provider: this.name,
-		};
-	}
-}
+			const response = await fetch('https://r.jina.ai/', {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({ url }),
+			});
 
-export interface JinaGroundingOptions {
-	max_sources?: number;
-	min_confidence?: number;
-	include_quotes?: boolean;
-}
+			if (!response.ok) {
+				if (response.status === 429) {
+					throw new ProviderError(
+						ErrorType.RATE_LIMIT,
+						'Rate limit exceeded',
+						this.name,
+					);
+				}
 
-export interface GroundingResult {
-	verified_statements: Array<{
-		statement: string;
-		confidence: number;
-		sources: Array<{
-			url: string;
-			title: string;
-			quote?: string;
-		}>;
-	}>;
-	unverified_statements: string[];
-}
+				throw new ProviderError(
+					ErrorType.API_ERROR,
+					`API request failed with status ${response.status}`,
+					this.name,
+				);
+			}
 
-export class JinaGroundingProvider {
-	name = 'jina_grounding';
-	description =
-		'Real-time fact verification against web knowledge. Reduces hallucinations and improves content integrity through statement verification.';
+			const data = await response.json();
 
-	async verify_content(
-		content: string,
-		options: JinaGroundingOptions = {},
-	): Promise<GroundingResult> {
-		const api_key = validate_api_key(
-			config.enhancement.jina_grounding.api_key,
-			this.name,
-		);
+			if (!data.data) {
+				throw new ProviderError(
+					ErrorType.API_ERROR,
+					'Invalid response format from Jina Reader',
+					this.name,
+				);
+			}
 
-		const default_options: JinaGroundingOptions = {
-			max_sources: 3,
-			min_confidence: 0.7,
-			include_quotes: true,
-		};
-
-		const final_options = { ...default_options, ...options };
-
-		// TODO: Implement actual API call
-		// This is a placeholder implementation
-		return {
-			verified_statements: [
-				{
-					statement: 'Example verified statement',
-					confidence: 0.95,
-					sources: [
-						{
-							url: 'https://example.com',
-							title: 'Example Source',
-							quote: final_options.include_quotes
-								? 'Example supporting quote from source'
-								: undefined,
-						},
-					],
+			return {
+				content: data.data.content || '',
+				metadata: {
+					title: data.data.title || '',
+					date: data.data.timestamp || '',
+					word_count: (data.data.content || '').split(/\s+/).filter(Boolean).length,
 				},
-			],
-			unverified_statements: ['Example unverified statement'],
+				source_provider: this.name,
+			};
 		};
+
+		try {
+			return await retry_with_backoff(process_url);
+		} catch (error: unknown) {
+			if (error instanceof ProviderError) {
+				throw error;
+			}
+			throw new ProviderError(
+				ErrorType.PROVIDER_ERROR,
+				`Failed to process content: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+				this.name,
+			);
+		}
 	}
 }

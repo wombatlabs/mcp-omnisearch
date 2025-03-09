@@ -33,6 +33,10 @@ export interface EnhancementResult {
 		type: string;
 		description: string;
 	}[];
+	sources?: Array<{
+		title: string;
+		url: string;
+	}>;
 	source_provider: string;
 }
 

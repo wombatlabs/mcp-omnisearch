@@ -33,7 +33,7 @@ export const config = {
 	ai_response: {
 		perplexity: {
 			api_key: PERPLEXITY_API_KEY,
-			base_url: 'https://api.perplexity.ai/v1',
+			base_url: 'https://api.perplexity.ai',
 			timeout: 60000, // 60 seconds
 		},
 		kagi_fastgpt: {
