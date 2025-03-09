@@ -6,6 +6,10 @@ capabilities of Tavily, Perplexity, Kagi, Jina AI, and Brave to offer
 comprehensive search, AI responses, content processing, and
 enhancement features through a single interface.
 
+<a href="https://glama.ai/mcp/servers/gz5wgmptd8">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/gz5wgmptd8/badge" alt="Glama badge" />
+</a>
+
 ## Features
 
 ### 🔍 Search Tools
