@@ -33,6 +33,7 @@ export interface PerplexityOptions {
 	top_k?: number;
 	presence_penalty?: number;
 	frequency_penalty?: number;
+	stream?: boolean;
 }
 
 export class PerplexityProvider implements SearchProvider {
@@ -46,16 +47,15 @@ export class PerplexityProvider implements SearchProvider {
 			max_tokens: params.limit || 1024,
 		});
 
-		// Start with the main answer, split into paragraphs if needed
-		const paragraphs = response.answer
-			.split('\n\n')
-			.filter((p) => p.trim());
-		const results: SearchResult[] = paragraphs.map((paragraph) => ({
-			title: 'Perplexity AI Response',
-			url: 'https://perplexity.ai',
-			snippet: paragraph.trim(),
-			source_provider: this.name,
-		}));
+		// Return the full answer as a single result
+		const results: SearchResult[] = [
+			{
+				title: 'Perplexity AI',
+				url: 'https://perplexity.ai',
+				snippet: response.answer,
+				source_provider: this.name,
+			},
+		];
 
 		// Add sources if available
 		if (
@@ -112,24 +112,20 @@ export class PerplexityProvider implements SearchProvider {
 				{
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json',
+						accept: 'application/json',
+						'content-type': 'application/json',
 						Authorization: `Bearer ${api_key}`,
 					},
 					body: JSON.stringify({
-						model: 'sonar-pro', // Use sonar-pro for best search results
-						search_queries: [query], // Enable online search
+						model: 'sonar-pro',
 						messages: [
 							{
 								role: 'user',
 								content: query,
 							},
 						],
-						max_tokens: final_options.max_tokens,
-						temperature: final_options.temperature,
-						top_p: final_options.top_p,
-						top_k: final_options.top_k,
-						presence_penalty: final_options.presence_penalty,
-						frequency_penalty: final_options.frequency_penalty,
+						temperature: 0.2,
+						max_tokens: 1024,
 					}),
 				},
 			);
@@ -144,22 +140,31 @@ export class PerplexityProvider implements SearchProvider {
 			}
 
 			const data = await response.json();
+
+			// Extract the full content from choices
+			if (!data.choices?.[0]?.message?.content) {
+				throw new Error(
+					'Invalid response format from Perplexity API',
+				);
+			}
+
 			const answer = data.choices[0].message.content;
-			const request_time = response.headers.get('x-request-time');
-			const processing_time = request_time
-				? (Date.now() - Number(request_time)) / 1000
-				: 0;
+			const citations = data.citations || [];
 
 			return {
 				answer,
 				context: {
-					sources: [], // Citations require elevated access
-					follow_up_questions: data.related_questions,
+					sources: citations.map((citation: string) => ({
+						title: 'Citation',
+						url: citation,
+						content: 'Source citation',
+					})),
+					follow_up_questions: [],
 				},
 				metadata: {
 					model: final_options.model!,
-					processing_time,
-					token_count: data.usage.total_tokens,
+					processing_time: 0,
+					token_count: data.usage?.total_tokens || 0,
 				},
 			};
 		} catch (error: unknown) {
@@ -199,12 +204,12 @@ export class PerplexityProvider implements SearchProvider {
 				{
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json',
+						accept: 'application/json',
+						'content-type': 'application/json',
 						Authorization: `Bearer ${api_key}`,
 					},
 					body: JSON.stringify({
-						model: 'sonar-pro', // Use sonar-pro for best search results
-						search_queries: [query], // Enable online search
+						model: 'sonar-pro',
 						messages: [
 							{
 								role: 'system',
@@ -236,21 +241,22 @@ export class PerplexityProvider implements SearchProvider {
 
 			const data = await response.json();
 			const answer = data.choices[0].message.content;
-			const request_time = response.headers.get('x-request-time');
-			const processing_time = request_time
-				? (Date.now() - Number(request_time)) / 1000
-				: 0;
+			const citations = data.citations || [];
 
 			return {
 				answer,
 				context: {
-					sources: [], // Citations require elevated access
-					follow_up_questions: data.related_questions,
+					sources: citations.map((citation: string) => ({
+						title: 'Citation',
+						url: citation,
+						content: 'Source citation',
+					})),
+					follow_up_questions: [],
 				},
 				metadata: {
 					model: final_options.model!,
-					processing_time,
-					token_count: data.usage.total_tokens,
+					processing_time: 0,
+					token_count: data.usage?.total_tokens || 0,
 				},
 			};
 		} catch (error: unknown) {
