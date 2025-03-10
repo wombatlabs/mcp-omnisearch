@@ -61,7 +61,7 @@ Add this to your Cline MCP settings:
 				"TAVILY_API_KEY": "your-tavily-key",
 				"PERPLEXITY_API_KEY": "your-perplexity-key",
 				"KAGI_API_KEY": "your-kagi-key",
-				"JINA_API_KEY": "your-jina-key",
+				"JINA_AI_API_KEY": "your-jina-key",
 				"BRAVE_API_KEY": "your-brave-key"
 			},
 			"disabled": false,
@@ -83,7 +83,7 @@ For WSL environments, add this to your Claude Desktop configuration:
 			"args": [
 				"bash",
 				"-c",
-				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_API_KEY=key4 BRAVE_API_KEY=key5 node /path/to/mcp-omnisearch/dist/index.js"
+				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 node /path/to/mcp-omnisearch/dist/index.js"
 			]
 		}
 	}
@@ -97,7 +97,7 @@ The server requires API keys for each provider:
 - `TAVILY_API_KEY`: For Tavily Search
 - `PERPLEXITY_API_KEY`: For Perplexity AI
 - `KAGI_API_KEY`: For Kagi services (FastGPT, Summarizer, Enrichment)
-- `JINA_API_KEY`: For Jina AI services (Reader, Grounding)
+- `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
 - `BRAVE_API_KEY`: For Brave Search
 
 ## API
