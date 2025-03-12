@@ -4,6 +4,7 @@ import {
 	ListResourceTemplatesRequestSchema,
 	ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { available_providers } from './tools.js';
 
 export const setup_handlers = (server: Server) => {
 	// List available resources
@@ -50,13 +51,27 @@ export const setup_handlers = (server: Server) => {
 								{
 									status: 'operational',
 									providers: {
-										search: ['tavily', 'brave', 'kagi'],
-										ai_response: ['perplexity', 'kagi_fastgpt'],
-										processing: ['jina_reader', 'kagi_summarizer'],
-										enhancement: [
-											'jina_grounding',
-											'kagi_enrichment',
-										],
+										search: Array.from(available_providers.search),
+										ai_response: Array.from(
+											available_providers.ai_response,
+										),
+										processing: Array.from(
+											available_providers.processing,
+										),
+										enhancement: Array.from(
+											available_providers.enhancement,
+										),
+									},
+									available_count: {
+										search: available_providers.search.size,
+										ai_response: available_providers.ai_response.size,
+										processing: available_providers.processing.size,
+										enhancement: available_providers.enhancement.size,
+										total:
+											available_providers.search.size +
+											available_providers.ai_response.size +
+											available_providers.processing.size +
+											available_providers.enhancement.size,
 									},
 								},
 								null,
@@ -73,6 +88,18 @@ export const setup_handlers = (server: Server) => {
 			);
 			if (providerMatch) {
 				const providerName = providerMatch[1];
+
+				// Check if provider is available
+				const isAvailable =
+					available_providers.search.has(providerName) ||
+					available_providers.ai_response.has(providerName);
+
+				if (!isAvailable) {
+					throw new Error(
+						`Provider not available: ${providerName} (missing API key)`,
+					);
+				}
+
 				return {
 					contents: [
 						{

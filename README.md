@@ -42,6 +42,25 @@ enhancement features through a single interface.
 - **Jina AI Grounding**: Real-time fact verification against web
   knowledge
 
+## Flexible API Key Requirements
+
+MCP Omnisearch is designed to work with the API keys you have
+available. You don't need to have keys for all providers - the server
+will automatically detect which API keys are available and only enable
+those providers.
+
+For example:
+
+- If you only have a Tavily and Perplexity API key, only those
+  providers will be available
+- If you don't have a Kagi API key, Kagi-based services won't be
+  available, but all other providers will work normally
+- The server will log which providers are available based on the API
+  keys you've configured
+
+This flexibility makes it easy to get started with just one or two
+providers and add more as needed.
+
 ## Configuration
 
 This server requires configuration through your MCP client. Here are
@@ -92,13 +111,18 @@ For WSL environments, add this to your Claude Desktop configuration:
 
 ### Environment Variables
 
-The server requires API keys for each provider:
+The server uses API keys for each provider. **You don't need keys for
+all providers** - only the providers corresponding to your available
+API keys will be activated:
 
 - `TAVILY_API_KEY`: For Tavily Search
 - `PERPLEXITY_API_KEY`: For Perplexity AI
 - `KAGI_API_KEY`: For Kagi services (FastGPT, Summarizer, Enrichment)
 - `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
 - `BRAVE_API_KEY`: For Brave Search
+
+You can start with just one or two API keys and add more later as
+needed. The server will log which providers are available on startup.
 
 ## API
 

@@ -71,19 +71,39 @@ export const config = {
 // Validate required environment variables
 export const validate_config = () => {
 	const missing_keys: string[] = [];
+	const available_keys: string[] = [];
 
 	// Check search provider keys
 	if (!TAVILY_API_KEY) missing_keys.push('TAVILY_API_KEY');
-	if (!BRAVE_API_KEY) missing_keys.push('BRAVE_API_KEY');
-	if (!KAGI_API_KEY) missing_keys.push('KAGI_API_KEY');
-	if (!PERPLEXITY_API_KEY) missing_keys.push('PERPLEXITY_API_KEY');
-	if (!JINA_AI_API_KEY) missing_keys.push('JINA_AI_API_KEY');
+	else available_keys.push('TAVILY_API_KEY');
 
+	if (!BRAVE_API_KEY) missing_keys.push('BRAVE_API_KEY');
+	else available_keys.push('BRAVE_API_KEY');
+
+	if (!KAGI_API_KEY) missing_keys.push('KAGI_API_KEY');
+	else available_keys.push('KAGI_API_KEY');
+
+	if (!PERPLEXITY_API_KEY) missing_keys.push('PERPLEXITY_API_KEY');
+	else available_keys.push('PERPLEXITY_API_KEY');
+
+	if (!JINA_AI_API_KEY) missing_keys.push('JINA_AI_API_KEY');
+	else available_keys.push('JINA_AI_API_KEY');
+
+	// Log available keys
+	if (available_keys.length > 0) {
+		console.error(`Found API keys for: ${available_keys.join(', ')}`);
+	} else {
+		console.error(
+			'Warning: No API keys found. No providers will be available.',
+		);
+	}
+
+	// Log missing keys as informational
 	if (missing_keys.length > 0) {
 		console.warn(
-			`Warning: Missing environment variables: ${missing_keys.join(
+			`Missing API keys for: ${missing_keys.join(
 				', ',
-			)}. Some functionality may be limited.`,
+			)}. Some providers will not be available.`,
 		);
 	}
 };

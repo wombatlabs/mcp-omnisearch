@@ -8,7 +8,10 @@ import { BraveSearchProvider } from './search/brave/index.js';
 import { KagiSearchProvider } from './search/kagi/index.js';
 import { TavilySearchProvider } from './search/tavily/index.js';
 
+import { is_api_key_valid } from '../common/utils.js';
+import { config } from '../config/env.js';
 import {
+	available_providers,
 	register_enhancement_provider,
 	register_processing_provider,
 	register_search_provider,
@@ -16,28 +19,114 @@ import {
 
 export const initialize_providers = () => {
 	// Initialize search providers
-	register_search_provider(new TavilySearchProvider());
-	register_search_provider(new BraveSearchProvider());
-	register_search_provider(new KagiSearchProvider());
+	if (is_api_key_valid(config.search.tavily.api_key, 'tavily')) {
+		register_search_provider(new TavilySearchProvider());
+	}
+
+	if (is_api_key_valid(config.search.brave.api_key, 'brave')) {
+		register_search_provider(new BraveSearchProvider());
+	}
+
+	if (is_api_key_valid(config.search.kagi.api_key, 'kagi')) {
+		register_search_provider(new KagiSearchProvider());
+	}
 
 	// Initialize AI response providers (using SearchProvider interface for result compatibility)
-	register_search_provider(new PerplexityProvider()); // AI response provider
-	register_search_provider(new KagiFastGPTProvider()); // AI response provider
+	if (
+		is_api_key_valid(
+			config.ai_response.perplexity.api_key,
+			'perplexity',
+		)
+	) {
+		register_search_provider(new PerplexityProvider(), true); // AI response provider
+	}
+
+	if (
+		is_api_key_valid(
+			config.ai_response.kagi_fastgpt.api_key,
+			'kagi_fastgpt',
+		)
+	) {
+		register_search_provider(new KagiFastGPTProvider(), true); // AI response provider
+	}
 
 	// Initialize processing providers
-	register_processing_provider(new JinaReaderProvider());
-	register_processing_provider(new KagiSummarizerProvider());
+	if (
+		is_api_key_valid(
+			config.processing.jina_reader.api_key,
+			'jina_reader',
+		)
+	) {
+		register_processing_provider(new JinaReaderProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.kagi_summarizer.api_key,
+			'kagi_summarizer',
+		)
+	) {
+		register_processing_provider(new KagiSummarizerProvider());
+	}
 
 	// Initialize enhancement providers
-	register_enhancement_provider(new JinaGroundingProvider());
-	register_enhancement_provider(new KagiEnrichmentProvider());
+	if (
+		is_api_key_valid(
+			config.enhancement.jina_grounding.api_key,
+			'jina_grounding',
+		)
+	) {
+		register_enhancement_provider(new JinaGroundingProvider());
+	}
 
-	// Log initialization
-	console.error('Initialized providers:');
-	console.error('- Search: Tavily, Brave, Kagi');
-	console.error(
-		'- AI Response: Perplexity, Kagi FastGPT (registered as search providers for interface compatibility)',
-	);
-	console.error('- Processing: Jina Reader, Kagi Summarizer');
-	console.error('- Enhancement: Jina Grounding, Kagi Enrichment');
+	if (
+		is_api_key_valid(
+			config.enhancement.kagi_enrichment.api_key,
+			'kagi_enrichment',
+		)
+	) {
+		register_enhancement_provider(new KagiEnrichmentProvider());
+	}
+
+	// Log available providers
+	console.error('Available providers:');
+	if (available_providers.search.size > 0) {
+		console.error(
+			`- Search: ${Array.from(available_providers.search).join(
+				', ',
+			)}`,
+		);
+	} else {
+		console.error('- Search: None available (missing API keys)');
+	}
+
+	if (available_providers.ai_response.size > 0) {
+		console.error(
+			`- AI Response: ${Array.from(
+				available_providers.ai_response,
+			).join(', ')}`,
+		);
+	} else {
+		console.error('- AI Response: None available (missing API keys)');
+	}
+
+	if (available_providers.processing.size > 0) {
+		console.error(
+			`- Processing: ${Array.from(
+				available_providers.processing,
+			).join(', ')}`,
+		);
+	} else {
+		console.error('- Processing: None available (missing API keys)');
+	}
+
+	if (available_providers.enhancement.size > 0) {
+		console.error(
+			`- Enhancement: ${Array.from(
+				available_providers.enhancement,
+			).join(', ')}`,
+		);
+	} else {
+		console.error('- Enhancement: None available (missing API keys)');
+	}
 };

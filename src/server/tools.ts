@@ -11,6 +11,14 @@ import {
 } from '../common/types.js';
 import { create_error_response } from '../common/utils.js';
 
+// Track available providers by category
+export const available_providers = {
+	search: new Set<string>(),
+	ai_response: new Set<string>(),
+	processing: new Set<string>(),
+	enhancement: new Set<string>(),
+};
+
 class ToolRegistry {
 	private search_providers: Map<string, SearchProvider> = new Map();
 	private processing_providers: Map<string, ProcessingProvider> =
@@ -18,16 +26,26 @@ class ToolRegistry {
 	private enhancement_providers: Map<string, EnhancementProvider> =
 		new Map();
 
-	register_search_provider(provider: SearchProvider) {
+	register_search_provider(
+		provider: SearchProvider,
+		is_ai_response = false,
+	) {
 		this.search_providers.set(provider.name, provider);
+		if (is_ai_response) {
+			available_providers.ai_response.add(provider.name);
+		} else {
+			available_providers.search.add(provider.name);
+		}
 	}
 
 	register_processing_provider(provider: ProcessingProvider) {
 		this.processing_providers.set(provider.name, provider);
+		available_providers.processing.add(provider.name);
 	}
 
 	register_enhancement_provider(provider: EnhancementProvider) {
 		this.enhancement_providers.set(provider.name, provider);
+		available_providers.enhancement.add(provider.name);
 	}
 
 	setup_tool_handlers(server: Server) {
@@ -296,8 +314,9 @@ export const register_tools = (server: Server) => {
 // Export methods to register providers
 export const register_search_provider = (
 	provider: SearchProvider,
+	is_ai_response = false,
 ) => {
-	registry.register_search_provider(provider);
+	registry.register_search_provider(provider, is_ai_response);
 };
 
 export const register_processing_provider = (

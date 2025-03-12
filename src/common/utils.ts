@@ -16,6 +16,23 @@ export const validate_api_key = (
 	return key;
 };
 
+/**
+ * Checks if an API key exists and is potentially valid without throwing an error
+ * @param key The API key to check
+ * @param provider The name of the provider (for logging purposes)
+ * @returns boolean indicating if the key exists and is not empty
+ */
+export const is_api_key_valid = (
+	key: string | undefined,
+	provider: string,
+): boolean => {
+	if (!key || key.trim() === '') {
+		console.warn(`API key not found or empty for ${provider}`);
+		return false;
+	}
+	return true;
+};
+
 export const handle_rate_limit = (
 	provider: string,
 	reset_time?: Date,
