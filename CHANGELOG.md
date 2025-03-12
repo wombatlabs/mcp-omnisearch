@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.3
+
+### Patch Changes
+
+- 0d937fa: Add Tavily Extract Provider for web content extraction
+
 ## 0.0.2
 
 ### Patch Changes
