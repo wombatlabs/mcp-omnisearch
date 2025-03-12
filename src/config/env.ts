@@ -53,6 +53,11 @@ export const config = {
 			base_url: 'https://kagi.com/api/v0/summarize',
 			timeout: 30000, // 30 seconds
 		},
+		tavily_extract: {
+			api_key: TAVILY_API_KEY,
+			base_url: 'https://api.tavily.com',
+			timeout: 30000, // 30 seconds
+		},
 	},
 	enhancement: {
 		kagi_enrichment: {

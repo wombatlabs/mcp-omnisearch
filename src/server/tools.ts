@@ -94,8 +94,26 @@ class ToolRegistry {
 							type: 'object',
 							properties: {
 								url: {
+									oneOf: [
+										{
+											type: 'string',
+											description: 'Single URL to process',
+										},
+										{
+											type: 'array',
+											items: {
+												type: 'string',
+											},
+											description: 'Multiple URLs to process',
+										},
+									],
+								},
+								extract_depth: {
 									type: 'string',
-									description: 'URL to process',
+									enum: ['basic', 'advanced'],
+									default: 'basic',
+									description:
+										'The depth of the extraction process. "advanced" retrieves more data but costs more credits.',
 								},
 							},
 							required: ['url'],
@@ -216,7 +234,11 @@ class ToolRegistry {
 								};
 							}
 
-							if (!('url' in args) || typeof args.url !== 'string') {
+							if (
+								!('url' in args) ||
+								(typeof args.url !== 'string' &&
+									!Array.isArray(args.url))
+							) {
 								return {
 									content: [
 										{
@@ -228,7 +250,10 @@ class ToolRegistry {
 								};
 							}
 
-							const result = await provider.process_content(args.url);
+							const result = await provider.process_content(
+								args.url,
+								args.extract_depth as 'basic' | 'advanced',
+							);
 							return {
 								content: [
 									{

@@ -34,6 +34,10 @@ enhancement features through a single interface.
   and PDF support
 - **Kagi Universal Summarizer**: Content summarization for pages,
   videos, and podcasts
+- **Tavily Extract**: Extract raw content from single or multiple web
+  pages with configurable extraction depth ('basic' or 'advanced').
+  Returns both combined content and individual URL content, with
+  metadata including word count and extraction statistics
 
 ### 🔄 Enhancement Tools
 
@@ -250,6 +254,36 @@ Example:
 	"url": "https://example.com/long-article"
 }
 ```
+
+#### process_tavily_extract
+
+Extract raw content from web pages with Tavily Extract.
+
+Parameters:
+
+- `url` (string | string[], required): Single URL or array of URLs to
+  extract content from
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced'
+
+Example:
+
+```json
+{
+	"url": [
+		"https://example.com/article1",
+		"https://example.com/article2"
+	],
+	"extract_depth": "advanced"
+}
+```
+
+Response includes:
+
+- Combined content from all URLs
+- Individual raw content for each URL
+- Metadata with word count, successful extractions, and any failed
+  URLs
 
 ### Enhancement Tools
 

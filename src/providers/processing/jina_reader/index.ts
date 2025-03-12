@@ -18,7 +18,10 @@ export class JinaReaderProvider implements ProcessingProvider {
 
 	constructor() {
 		// Validate API key exists at construction time
-		validate_api_key(config.processing.jina_reader.api_key, this.name);
+		validate_api_key(
+			config.processing.jina_reader.api_key,
+			this.name,
+		);
 	}
 
 	async process_content(url: string): Promise<ProcessingResult> {
@@ -37,8 +40,8 @@ export class JinaReaderProvider implements ProcessingProvider {
 			);
 
 			const headers: HeadersInit = {
-				'Authorization': `Bearer ${api_key}`,
-				'Accept': 'application/json',
+				Authorization: `Bearer ${api_key}`,
+				Accept: 'application/json',
 				'Content-Type': 'application/json',
 			};
 
@@ -79,7 +82,9 @@ export class JinaReaderProvider implements ProcessingProvider {
 				metadata: {
 					title: data.data.title || '',
 					date: data.data.timestamp || '',
-					word_count: (data.data.content || '').split(/\s+/).filter(Boolean).length,
+					word_count: (data.data.content || '')
+						.split(/\s+/)
+						.filter(Boolean).length,
 				},
 				source_provider: this.name,
 			};

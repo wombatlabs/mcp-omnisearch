@@ -4,6 +4,7 @@ import { JinaGroundingProvider } from './enhancement/jina_grounding/index.js';
 import { KagiEnrichmentProvider } from './enhancement/kagi_enrichment/index.js';
 import { JinaReaderProvider } from './processing/jina_reader/index.js';
 import { KagiSummarizerProvider } from './processing/kagi_summarizer/index.js';
+import { TavilyExtractProvider } from './processing/tavily_extract/index.js';
 import { BraveSearchProvider } from './search/brave/index.js';
 import { KagiSearchProvider } from './search/kagi/index.js';
 import { TavilySearchProvider } from './search/tavily/index.js';
@@ -67,6 +68,15 @@ export const initialize_providers = () => {
 		)
 	) {
 		register_processing_provider(new KagiSummarizerProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.tavily_extract.api_key,
+			'tavily_extract',
+		)
+	) {
+		register_processing_provider(new TavilyExtractProvider());
 	}
 
 	// Initialize enhancement providers

@@ -17,11 +17,19 @@ export interface BaseSearchParams {
 
 export interface ProcessingResult {
 	content: string;
+	raw_contents?: Array<{
+		url: string;
+		content: string;
+	}>;
 	metadata: {
 		title?: string;
 		author?: string;
 		date?: string;
 		word_count?: number;
+		failed_urls?: string[];
+		urls_processed?: number;
+		successful_extractions?: number;
+		extract_depth?: 'basic' | 'advanced';
 	};
 	source_provider: string;
 }
@@ -48,7 +56,10 @@ export interface SearchProvider {
 }
 
 export interface ProcessingProvider {
-	process_content(url: string): Promise<ProcessingResult>;
+	process_content(
+		url: string | string[],
+		extract_depth?: 'basic' | 'advanced',
+	): Promise<ProcessingResult>;
 	name: string;
 	description: string;
 }
