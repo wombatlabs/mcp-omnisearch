@@ -10,6 +10,7 @@ export const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 
 // Content processing API keys
 export const JINA_AI_API_KEY = process.env.JINA_AI_API_KEY;
+export const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 
 // Provider configuration
 export const config = {
@@ -58,6 +59,31 @@ export const config = {
 			base_url: 'https://api.tavily.com',
 			timeout: 30000, // 30 seconds
 		},
+		firecrawl_scrape: {
+			api_key: FIRECRAWL_API_KEY,
+			base_url: 'https://api.firecrawl.dev/v1/scrape',
+			timeout: 60000, // 60 seconds - web scraping can take longer
+		},
+		firecrawl_crawl: {
+			api_key: FIRECRAWL_API_KEY,
+			base_url: 'https://api.firecrawl.dev/v1/crawl',
+			timeout: 120000, // 120 seconds - crawling can take even longer
+		},
+		firecrawl_map: {
+			api_key: FIRECRAWL_API_KEY,
+			base_url: 'https://api.firecrawl.dev/v1/map',
+			timeout: 60000, // 60 seconds
+		},
+		firecrawl_extract: {
+			api_key: FIRECRAWL_API_KEY,
+			base_url: 'https://api.firecrawl.dev/v1/extract',
+			timeout: 60000, // 60 seconds
+		},
+		firecrawl_actions: {
+			api_key: FIRECRAWL_API_KEY,
+			base_url: 'https://api.firecrawl.dev/v1/scrape',
+			timeout: 90000, // 90 seconds - actions can take longer
+		},
 	},
 	enhancement: {
 		kagi_enrichment: {
@@ -93,6 +119,9 @@ export const validate_config = () => {
 
 	if (!JINA_AI_API_KEY) missing_keys.push('JINA_AI_API_KEY');
 	else available_keys.push('JINA_AI_API_KEY');
+
+	if (!FIRECRAWL_API_KEY) missing_keys.push('FIRECRAWL_API_KEY');
+	else available_keys.push('FIRECRAWL_API_KEY');
 
 	// Log available keys
 	if (available_keys.length > 0) {

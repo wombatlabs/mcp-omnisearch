@@ -2,6 +2,11 @@ import { KagiFastGPTProvider } from './ai_response/kagi_fastgpt/index.js';
 import { PerplexityProvider } from './ai_response/perplexity/index.js';
 import { JinaGroundingProvider } from './enhancement/jina_grounding/index.js';
 import { KagiEnrichmentProvider } from './enhancement/kagi_enrichment/index.js';
+import { FirecrawlActionsProvider } from './processing/firecrawl_actions/index.js';
+import { FirecrawlCrawlProvider } from './processing/firecrawl_crawl/index.js';
+import { FirecrawlExtractProvider } from './processing/firecrawl_extract/index.js';
+import { FirecrawlMapProvider } from './processing/firecrawl_map/index.js';
+import { FirecrawlScrapeProvider } from './processing/firecrawl_scrape/index.js';
 import { JinaReaderProvider } from './processing/jina_reader/index.js';
 import { KagiSummarizerProvider } from './processing/kagi_summarizer/index.js';
 import { TavilyExtractProvider } from './processing/tavily_extract/index.js';
@@ -77,6 +82,51 @@ export const initialize_providers = () => {
 		)
 	) {
 		register_processing_provider(new TavilyExtractProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.firecrawl_scrape.api_key,
+			'firecrawl_scrape',
+		)
+	) {
+		register_processing_provider(new FirecrawlScrapeProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.firecrawl_crawl.api_key,
+			'firecrawl_crawl',
+		)
+	) {
+		register_processing_provider(new FirecrawlCrawlProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.firecrawl_map.api_key,
+			'firecrawl_map',
+		)
+	) {
+		register_processing_provider(new FirecrawlMapProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.firecrawl_extract.api_key,
+			'firecrawl_extract',
+		)
+	) {
+		register_processing_provider(new FirecrawlExtractProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.firecrawl_actions.api_key,
+			'firecrawl_actions',
+		)
+	) {
+		register_processing_provider(new FirecrawlActionsProvider());
 	}
 
 	// Initialize enhancement providers

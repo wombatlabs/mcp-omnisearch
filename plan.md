@@ -19,6 +19,12 @@ graph TD
 
     P --> P1[Jina AI Reader]
     P --> P2[Kagi Universal Summarizer]
+    P --> P3[Tavily Extract]
+    P --> P4[Firecrawl Scrape]
+    P --> P5[Firecrawl Crawl]
+    P --> P6[Firecrawl Map]
+    P --> P7[Firecrawl Extract]
+    P --> P8[Firecrawl Actions]
 
     E --> E1[Kagi Enrichment API]
     E --> E2[Jina AI Grounding]
@@ -30,6 +36,12 @@ graph TD
     AI2 --> API4[Kagi API]
     P1 --> API5[Jina AI API]
     P2 --> API4
+    P3 --> API1
+    P4 --> API6[Firecrawl API]
+    P5 --> API6
+    P6 --> API6
+    P7 --> API6
+    P8 --> API6
     E1 --> API4
     E2 --> API5
 
@@ -104,6 +116,20 @@ Content Processing Tools:
 - **Kagi Universal Summarizer**: "Instantly summarizes content of any
   type and length from URLs. Supports pages, videos, and podcasts with
   transcripts."
+- **Tavily Extract**: "Extract web page content from single or
+  multiple URLs. Efficiently converts web content into clean,
+  processable text with configurable extraction depth and optional
+  image extraction."
+- **Firecrawl Scrape**: "Extract clean, LLM-ready data from single URLs with
+  enhanced formatting options."
+- **Firecrawl Crawl**: "Deep crawling of all accessible subpages on a website
+  with configurable depth limits."
+- **Firecrawl Map**: "Fast URL collection from websites for comprehensive site
+  mapping."
+- **Firecrawl Extract**: "Structured data extraction with AI using natural
+  language prompts."
+- **Firecrawl Actions**: "Support for page interactions (clicking, scrolling,
+  etc.) before extraction for dynamic content."
 
 Enhancement Tools:
 
@@ -150,7 +176,14 @@ src/
 │   │   └── kagi_fastgpt/ # Kagi FastGPT implementation
 │   ├── processing/  # Content processing providers
 │   │   ├── jina_reader/ # Jina AI Reader implementation
-│   │   └── kagi_summarizer/ # Kagi Universal Summarizer implementation
+│   │   ├── kagi_summarizer/ # Kagi Universal Summarizer implementation
+│   │   ├── tavily_extract/ # Tavily Extract implementation
+│   │   └── firecrawl/ # Firecrawl tools
+│   │       ├── scrape/  # URL scraping implementation
+│   │       ├── crawl/   # Website crawling implementation
+│   │       ├── map/     # URL mapping implementation
+│   │       ├── extract/ # Structured data extraction
+│   │       └── actions/ # Page interaction implementation
 │   └── enhancement/ # Enhancement providers
 │       ├── kagi_enrichment/ # Kagi Enrichment implementation
 │       └── jina_grounding/  # Jina AI Grounding implementation
@@ -227,80 +260,123 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 
 ## Implementation Status & Next Steps
 
-### Phase 1: Core Structure ✓
+### Phase 1: Core Structure ✅
 
-- ✓ Set up the unified MCP server framework
-- ✓ Create modular structure for providers
-- ✓ Implement configuration management
-- ✓ Set up resource handlers
-- ✓ Configure provider registration
+- ✅ Set up the unified MCP server framework
+- ✅ Create modular structure for providers
+- ✅ Implement configuration management
+- ✅ Set up resource handlers
+- ✅ Configure provider registration
 
-### Phase 2: Provider Integration ✓
+### Phase 2: Provider Integration ✅
 
 All providers have been successfully implemented:
 
 1. **Search Providers**
 
-   - [x] Tavily Search ✓
-     - ✓ Implement search API call with proper error handling
-     - ✓ Add rate limiting with retry logic
-     - ✓ Add comprehensive error handling with specific error messages
-     - ✓ Successfully tested with real queries
-   - [x] Brave Search ✓
-     - ✓ Implement search API call with proper error handling
-     - ✓ Add rate limiting with retry logic
-     - ✓ Add domain filtering support
-     - ✓ Successfully tested implementation
-   - [x] Kagi Search ✓
-     - ✓ Implement search API call with proper error handling
-     - ✓ Add rate limiting with retry logic
-     - ✓ Add domain filtering support
-     - ✓ Successfully tested with real queries
+   - [x] Tavily Search ✅
+     - ✅ Implement search API call with proper error handling
+     - ✅ Add rate limiting with retry logic
+     - ✅ Add comprehensive error handling with specific error
+       messages
+     - ✅ Successfully tested with real queries
+   - [x] Brave Search ✅
+     - ✅ Implement search API call with proper error handling
+     - ✅ Add rate limiting with retry logic
+     - ✅ Add domain filtering support
+     - ✅ Successfully tested implementation
+   - [x] Kagi Search ✅
+     - ✅ Implement search API call with proper error handling
+     - ✅ Add rate limiting with retry logic
+     - ✅ Add domain filtering support
+     - ✅ Successfully tested with real queries
 
 2. **AI Response Providers**
 
-   - [x] Perplexity AI ✓
-     - ✓ Implement chat completion API with proper error handling
-     - ✓ Add context handling with system messages
-     - ✓ Add comprehensive parameter support (top_p, top_k, penalties)
-     - ✓ Implement search interface for unified access
-     - ✓ Configure for sonar-pro model with online search
-     - ✓ Successfully tested implementation
+   - [x] Perplexity AI ✅
+     - ✅ Implement chat completion API with proper error handling
+     - ✅ Add context handling with system messages
+     - ✅ Add comprehensive parameter support (top_p, top_k,
+       penalties)
+     - ✅ Implement search interface for unified access
+     - ✅ Configure for sonar-pro model with online search
+     - ✅ Successfully tested implementation
      - Note: Citations require elevated API access
-   - [x] Kagi FastGPT ✓
-     - ✓ Implement FastGPT API with proper error handling
-     - ✓ Add citation handling through references
-     - ✓ Successfully tested with real queries
+   - [x] Kagi FastGPT ✅
+     - ✅ Implement FastGPT API with proper error handling
+     - ✅ Add citation handling through references
+     - ✅ Successfully tested with real queries
      - Note: Required special handling in ToolRegistry for provider
        names containing underscores
 
 3. **Content Processing**
 
-   - [x] Jina AI Reader ✓
-     - ✓ Implement URL processing with proper error handling
-     - ✓ Add support for both JSON and text response formats
-     - ✓ Successfully tested with real URLs
-   - [x] Kagi Summarizer ✓
-     - ✓ Implement URL summarization with proper error handling
-     - ✓ Add response parsing for output and metadata
-     - ✓ Add retry logic with backoff
-     - ✓ Successfully tested with real URLs
+   - [x] Jina AI Reader ✅
+     - ✅ Implement URL processing with proper error handling
+     - ✅ Add support for both JSON and text response formats
+     - ✅ Successfully tested with real URLs
+   - [x] Kagi Summarizer ✅
+     - ✅ Implement URL summarization with proper error handling
+     - ✅ Add response parsing for output and metadata
+     - ✅ Add retry logic with backoff
+     - ✅ Successfully tested with real URLs
      - Note: Uses POST method with JSON body, returns summary in
        data.output
+   - [x] Tavily Extract ✅
+     - ✅ Implement URL extraction with proper error handling
+     - ✅ Add support for single and multiple URL processing
+     - ✅ Add configurable extraction depth options
+     - ✅ Successfully tested with real URLs
+   - [ ] Firecrawl Tools (In Progress)
+     - [x] Scrape ✅
+       - ✅ Implement URL scraping with proper error handling
+       - ✅ Add support for different output formats (markdown, text, HTML)
+       - ✅ Add retry logic with backoff
+       - ✅ Updated to use Bearer token authentication
+       - ✅ Successfully tested with example.com
+     - [ ] Crawl (Implemented but not working)
+       - ✅ Implement website crawling with configurable depth
+       - ✅ Add support for different output formats
+       - ✅ Add comprehensive error handling
+       - ✅ Implement rate limiting to avoid overloading target sites
+       - ✅ Updated to use Bearer token authentication
+       - ❌ Still encountering API errors during testing
+     - [ ] Map (Implemented but not working)
+       - ✅ Implement URL mapping functionality
+       - ✅ Add configurable depth options
+       - ✅ Add filtering capabilities for URL patterns
+       - ✅ Implement proper error handling
+       - ✅ Updated to use Bearer token authentication
+       - ❌ Still encountering API errors during testing
+     - [ ] Extract (Implemented but not working)
+       - ✅ Implement structured data extraction with AI
+       - ✅ Add support for custom extraction prompts
+       - ✅ Add comprehensive error handling
+       - ✅ Implement retry logic
+       - ✅ Updated to use Bearer token authentication
+       - ❌ Still encountering API errors during testing
+     - [ ] Actions (Implemented but not working)
+       - ✅ Implement page interaction capabilities (click, scroll, input)
+       - ✅ Add support for waiting between actions
+       - ✅ Add comprehensive error handling
+       - ✅ Implement proper timeout handling
+       - ✅ Updated to use Bearer token authentication
+       - ❌ Still encountering API errors during testing
 
 4. **Enhancement Tools**
-   - [x] Kagi Enrichment ✓
-     - ✓ Implement content enrichment with Teclis and TinyGem indexes
-     - ✓ Add specialized index support for web and news content
-     - ✓ Add source tracking with titles and URLs
-     - ✓ Successfully tested with real content
-   - [x] Jina Grounding ✓
-     - ✓ Implement fact verification with g.jina.ai endpoint
-     - ✓ Add confidence scoring via factuality score
-     - ✓ Add source citation with URLs and key quotes
-     - ✓ Successfully tested with real statements
-     - ✓ Integrated with EnhancementProvider interface
-     - ✓ Added comprehensive error handling
+
+   - [x] Kagi Enrichment ✅
+     - ✅ Implement content enrichment with Teclis and TinyGem indexes
+     - ✅ Add specialized index support for web and news content
+     - ✅ Add source tracking with titles and URLs
+     - ✅ Successfully tested with real content
+   - [x] Jina Grounding ✅
+     - ✅ Implement fact verification with g.jina.ai endpoint
+     - ✅ Add confidence scoring via factuality score
+     - ✅ Add source citation with URLs and key quotes
+     - ✅ Successfully tested with real statements
+     - ✅ Integrated with EnhancementProvider interface
+     - ✅ Added comprehensive error handling
 
 ### Phase 3: Testing & Refinement (In Progress)
 
@@ -308,7 +384,7 @@ Systematic testing of all providers with real-world queries:
 
 1. **Search Providers**
 
-   - ✓ Tavily Search: Successfully tested with Rust error handling
+   - ✅ Tavily Search: Successfully tested with Rust error handling
      query
 
      - Properly implements domain filtering (docs.rs, rust-lang.org)
@@ -316,15 +392,15 @@ Systematic testing of all providers with real-world queries:
      - Comprehensive error handling and rate limiting
      - Code verified: Implements retry logic and query sanitization
 
-   - ✓ Brave Search: Successfully tested with TypeScript documentation
-     query
+   - ✅ Brave Search: Successfully tested with TypeScript
+     documentation query
 
      - Domain filtering works using site: syntax
      - Returns clean, focused technical documentation
      - Proper timeout handling and JSON validation
      - Code verified: Implements rate limiting and retry logic
 
-   - ✓ Kagi Search: Successfully tested with quantum computing
+   - ✅ Kagi Search: Successfully tested with quantum computing
      research query
      - Returns authoritative academic sources
      - Supports both include/exclude domain filtering
@@ -334,7 +410,7 @@ Systematic testing of all providers with real-world queries:
 
 2. **AI Response Providers**
 
-   - ✓ Perplexity Search: Successfully tested with complex technical
+   - ✅ Perplexity Search: Successfully tested with complex technical
      comparison
 
      - Generated comprehensive analysis of Rust vs C++ memory safety
@@ -343,7 +419,7 @@ Systematic testing of all providers with real-world queries:
      - Code verified: Implements multiple models, parameter controls,
        context handling
 
-   - ✓ Kagi FastGPT: Successfully tested with current events query
+   - ✅ Kagi FastGPT: Successfully tested with current events query
      - Quick response time with well-structured output
      - Clear citation system with numbered references
      - Effective source integration
@@ -352,7 +428,7 @@ Systematic testing of all providers with real-world queries:
 
 3. **Content Processing**
 
-   - ✓ Jina AI Reader: Successfully tested with Tokio Mutex
+   - ✅ Jina AI Reader: Successfully tested with Tokio Mutex
      documentation
 
      - Cleanly extracted technical content while preserving code
@@ -362,16 +438,31 @@ Systematic testing of all providers with real-world queries:
      - Code verified: Implements URL validation, rate limiting, retry
        logic
 
-   - ✓ Kagi Summarizer: Successfully tested with Rust documentation
+   - ✅ Kagi Summarizer: Successfully tested with Rust documentation
      - Generated accurate, concise summaries of technical content
      - Preserved key concepts and relationships
      - Handled error cases appropriately
      - Code verified: Implements timeout handling, API balance
        tracking, comprehensive error handling
+   - ✅ Tavily Extract: Successfully tested with multiple URLs
+     - Efficiently extracted content from multiple pages
+     - Properly combined results with metadata
+     - Handled failed extractions gracefully
+     - Code verified: Implements proper error handling, timeout
+       management
+   - Firecrawl Tools: Partially implemented and tested
+     - ✅ All providers implemented following the ProcessingProvider interface pattern
+     - ✅ Comprehensive error handling and retry logic implemented
+     - ✅ Support for various output formats and configurations added
+     - ✅ Integrated with the existing processing provider registry
+     - ✅ Updated to use Bearer token authentication
+     - ✅ Updated request parameters and response handling to match API documentation
+     - ✅ Scrape provider successfully tested
+     - ❌ Other providers still encountering API errors during testing (rate limits, authentication issues)
 
 4. **Enhancement Tools**
 
-   - ✓ Kagi Enrichment: Successfully tested with AI/software
+   - ✅ Kagi Enrichment: Successfully tested with AI/software
      development content
 
      - Retrieved relevant content from web and news sources
@@ -380,7 +471,7 @@ Systematic testing of all providers with real-world queries:
      - Code verified: Implements parallel endpoint querying, content
        filtering, HTML cleanup
 
-   - ✓ Jina Grounding: Successfully tested with Rust language
+   - ✅ Jina Grounding: Successfully tested with Rust language
      statement
      - Accurately identified factual inaccuracies
      - Provided detailed reasoning with sources
@@ -390,17 +481,31 @@ Systematic testing of all providers with real-world queries:
 
 Next Steps:
 
-1. Monitor rate limits across all providers
-2. Add comprehensive error logging
-3. Update documentation with test results
-4. Implement provider-specific optimizations based on test findings
-5. Consider adding streaming support for Perplexity responses
+1. Debug Firecrawl tools API integration
+
+   - ✅ Firecrawl API key added to environment configuration
+   - ✅ All tools implemented following the established ProcessingProvider pattern
+   - ✅ Comprehensive error handling and retry logic added
+   - ✅ Request parameters and response handling updated to match API documentation
+   - ❓ Investigate API authentication issues and rate limiting
+   - ❓ Test with various websites and content types once API issues are resolved
+
+2. Monitor rate limits across all providers
+3. Add comprehensive error logging
+4. Update documentation with test results
+5. Implement provider-specific optimizations based on test findings
+6. Consider adding streaming support for Perplexity responses
 
 ### Development Order
 
-1. Start with Tavily Search as it has the most straightforward API
-2. Follow with Kagi Search since it's used across multiple features
-3. Implement Brave Search
-4. Add Perplexity AI for advanced query handling
-5. Implement Jina AI Reader and Grounding
-6. Add remaining Kagi features (FastGPT, Summarizer, Enrichment)
+1. Start with Tavily Search as it has the most straightforward API ✅
+2. Follow with Kagi Search since it's used across multiple features ✅
+3. Implement Brave Search ✅
+4. Add Perplexity AI for advanced query handling ✅
+5. Implement Jina AI Reader and Grounding ✅
+6. Add remaining Kagi features (FastGPT, Summarizer, Enrichment) ✅
+7. Implement Firecrawl tools as Content Processing providers
+   - Start with basic Scrape functionality
+   - Add Crawl and Map capabilities
+   - Implement Extract with AI functionality
+   - Add Actions support for interactive page handling
