@@ -32,6 +32,7 @@
     "kagi",
     "perplexity",
     "jina-ai",
+    "firecrawl",
     "llm",
     "content-processing",
     "summarization",
@@ -41,7 +42,11 @@
     "pdf-processing",
     "image-captioning",
     "unified-search",
-    "multi-provider"
+    "multi-provider",
+    "web-crawling",
+    "site-mapping",
+    "data-extraction",
+    "web-interactions"
   ],
   "author": "Scott Spence",
   "license": "MIT",

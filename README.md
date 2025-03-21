@@ -2,9 +2,9 @@
 
 A Model Context Protocol (MCP) server that provides unified access to
 multiple search providers and AI tools. This server combines the
-capabilities of Tavily, Perplexity, Kagi, Jina AI, and Brave to offer
-comprehensive search, AI responses, content processing, and
-enhancement features through a single interface.
+capabilities of Tavily, Perplexity, Kagi, Jina AI, Brave, and
+Firecrawl to offer comprehensive search, AI responses, content
+processing, and enhancement features through a single interface.
 
 <a href="https://glama.ai/mcp/servers/gz5wgmptd8">
   <img width="380" height="200" src="https://glama.ai/mcp/servers/gz5wgmptd8/badge" alt="Glama badge" />
@@ -38,6 +38,16 @@ enhancement features through a single interface.
   pages with configurable extraction depth ('basic' or 'advanced').
   Returns both combined content and individual URL content, with
   metadata including word count and extraction statistics
+- **Firecrawl Scrape**: Extract clean, LLM-ready data from single URLs
+  with enhanced formatting options
+- **Firecrawl Crawl**: Deep crawling of all accessible subpages on a
+  website with configurable depth limits
+- **Firecrawl Map**: Fast URL collection from websites for
+  comprehensive site mapping
+- **Firecrawl Extract**: Structured data extraction with AI using
+  natural language prompts
+- **Firecrawl Actions**: Support for page interactions (clicking,
+  scrolling, etc.) before extraction for dynamic content
 
 ### 🔄 Enhancement Tools
 
@@ -85,7 +95,8 @@ Add this to your Cline MCP settings:
 				"PERPLEXITY_API_KEY": "your-perplexity-key",
 				"KAGI_API_KEY": "your-kagi-key",
 				"JINA_AI_API_KEY": "your-jina-key",
-				"BRAVE_API_KEY": "your-brave-key"
+				"BRAVE_API_KEY": "your-brave-key",
+				"FIRECRAWL_API_KEY": "your-firecrawl-key"
 			},
 			"disabled": false,
 			"autoApprove": []
@@ -106,7 +117,7 @@ For WSL environments, add this to your Claude Desktop configuration:
 			"args": [
 				"bash",
 				"-c",
-				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 node /path/to/mcp-omnisearch/dist/index.js"
+				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 FIRECRAWL_API_KEY=key6 node /path/to/mcp-omnisearch/dist/index.js"
 			]
 		}
 	}
@@ -124,6 +135,8 @@ API keys will be activated:
 - `KAGI_API_KEY`: For Kagi services (FastGPT, Summarizer, Enrichment)
 - `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
 - `BRAVE_API_KEY`: For Brave Search
+- `FIRECRAWL_API_KEY`: For Firecrawl services (Scrape, Crawl, Map,
+  Extract, Actions)
 
 You can start with just one or two API keys and add more later as
 needed. The server will log which providers are available on startup.
@@ -285,6 +298,135 @@ Response includes:
 - Metadata with word count, successful extractions, and any failed
   URLs
 
+#### firecrawl_scrape_process
+
+Extract clean, LLM-ready data from single URLs with enhanced
+formatting options.
+
+Parameters:
+
+- `url` (string | string[], required): Single URL or array of URLs to
+  extract content from
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced'
+
+Example:
+
+```json
+{
+	"url": "https://example.com/article",
+	"extract_depth": "basic"
+}
+```
+
+Response includes:
+
+- Clean, markdown-formatted content
+- Metadata including title, word count, and extraction statistics
+
+#### firecrawl_crawl_process
+
+Deep crawling of all accessible subpages on a website with
+configurable depth limits.
+
+Parameters:
+
+- `url` (string | string[], required): Starting URL for crawling
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced' (controls crawl depth and limits)
+
+Example:
+
+```json
+{
+	"url": "https://example.com",
+	"extract_depth": "advanced"
+}
+```
+
+Response includes:
+
+- Combined content from all crawled pages
+- Individual content for each page
+- Metadata including title, word count, and crawl statistics
+
+#### firecrawl_map_process
+
+Fast URL collection from websites for comprehensive site mapping.
+
+Parameters:
+
+- `url` (string | string[], required): URL to map
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced' (controls map depth)
+
+Example:
+
+```json
+{
+	"url": "https://example.com",
+	"extract_depth": "basic"
+}
+```
+
+Response includes:
+
+- List of all discovered URLs
+- Metadata including site title and URL count
+
+#### firecrawl_extract_process
+
+Structured data extraction with AI using natural language prompts.
+
+Parameters:
+
+- `url` (string | string[], required): URL to extract structured data
+  from
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced'
+
+Example:
+
+```json
+{
+	"url": "https://example.com",
+	"extract_depth": "basic"
+}
+```
+
+Response includes:
+
+- Structured data extracted from the page
+- Metadata including title, extraction statistics
+
+#### firecrawl_actions_process
+
+Support for page interactions (clicking, scrolling, etc.) before
+extraction for dynamic content.
+
+Parameters:
+
+- `url` (string | string[], required): URL to interact with and
+  extract content from
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced' (controls complexity of interactions)
+
+Example:
+
+```json
+{
+	"url": "https://news.ycombinator.com",
+	"extract_depth": "basic"
+}
+```
+
+Response includes:
+
+- Content extracted after performing interactions
+- Description of actions performed
+- Screenshot of the page (if available)
+- Metadata including title and extraction statistics
+
 ### Enhancement Tools
 
 #### enhance_kagi_enrichment
@@ -369,6 +511,7 @@ requirements:
 - **Kagi**: Some features limited to Business (Team) plan users
 - **Jina AI**: API key required for all services
 - **Brave**: API key from their developer portal
+- **Firecrawl**: API key required from their developer portal
 
 ### Rate Limits
 
@@ -393,3 +536,4 @@ Built on:
 - [Kagi Search](https://kagi.com)
 - [Jina AI](https://jina.ai)
 - [Brave Search](https://search.brave.com)
+- [Firecrawl](https://firecrawl.dev)
