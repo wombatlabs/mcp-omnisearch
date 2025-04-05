@@ -478,6 +478,69 @@ Systematic testing of all providers with real-world queries:
      - Code verified: Implements reference validation, token tracking,
        comprehensive error handling
 
+### Phase 4: Search Operator Implementation ✅
+
+1. **Common Search Operators** ✅
+   - ✅ site: (domain filtering)
+   - ✅ -site: (domain exclusion)
+   - ✅ filetype: (document type filtering)
+   - ✅ intitle: (title search)
+   - ✅ inurl: (URL search)
+   - ✅ before:/after: (date filtering)
+   - ✅ "exact phrase" (exact match)
+   - ✅ AND/OR/NOT (boolean operators)
+
+2. **Provider-Specific Implementation** ✅
+   
+   a. Brave Search ✅
+   - ✅ Implemented native operator support in query string
+   - ✅ Successfully tested with site:, filetype:, intitle: operators
+   - ✅ Added comprehensive operator documentation
+   - ✅ Verified operator combinations work correctly
+
+   b. Kagi Search ✅
+   - ✅ Implemented query string operators for all filtering
+   - ✅ Successfully tested with site: and -site: operators
+   - ✅ Added support for time range filtering
+   - ✅ Updated documentation with operator support
+
+   c. Tavily Search ✅
+   - ✅ Implemented domain filtering through API parameters
+   - ✅ Successfully tested with include/exclude domains
+   - ✅ Updated description to reflect supported features
+   - ✅ Verified API parameter handling
+
+3. **Implementation Strategy** ✅
+
+   a. Query Parser Layer ✅
+   ```mermaid
+   graph TD
+       A[User Query] --> B[Operator Parser]
+       B --> C{Provider Router}
+       C --> D[Tavily API Params]
+       C --> E[Brave Query String]
+       C --> F[Kagi Query String]
+   ```
+
+   b. Operator Handling ✅
+   - ✅ Created common operator parser in utils.ts
+   - ✅ Implemented provider-specific handling
+   - ✅ Added validation and error handling
+   - ✅ Tested operator combinations
+
+4. **Documentation Updates** ✅
+
+   a. README.md additions ✅
+   - ✅ Added Search Operators section
+   - ✅ Added examples for each operator
+   - ✅ Documented provider-specific capabilities
+   - ✅ Added usage examples
+
+   b. Tool descriptions ✅
+   - ✅ Updated provider descriptions
+   - ✅ Added operator support details
+   - ✅ Included example queries
+
 Next Steps:
 
 1. Monitor rate limits across all providers
@@ -486,6 +549,7 @@ Next Steps:
 4. Implement provider-specific optimizations based on test findings
 5. Consider adding streaming support for Perplexity responses
 6. Expand testing of Firecrawl tools with more complex websites and use cases
+7. Implement search operator support across all providers
 
 ### Development Order
 

@@ -15,11 +15,44 @@ processing, and enhancement features through a single interface.
 ### 🔍 Search Tools
 
 - **Tavily Search**: Optimized for factual information with strong
-  citation support
+  citation support. Supports domain filtering through API parameters (include_domains/exclude_domains).
 - **Brave Search**: Privacy-focused search with good technical content
-  coverage
+  coverage. Features native support for search operators (site:, -site:, filetype:, intitle:, inurl:, before:, after:, and exact phrases).
 - **Kagi Search**: High-quality search results with minimal
-  advertising influence, focused on authoritative sources
+  advertising influence, focused on authoritative sources. Supports search operators in query string (site:, -site:, filetype:, intitle:, inurl:, before:, after:, and exact phrases).
+
+### 🎯 Search Operators
+
+MCP Omnisearch provides powerful search capabilities through operators and parameters:
+
+#### Common Search Features
+- Domain filtering: Available across all providers
+  - Tavily: Through API parameters (include_domains/exclude_domains)
+  - Brave & Kagi: Through site: and -site: operators
+- File type filtering: Available in Brave and Kagi (filetype:)
+- Title and URL filtering: Available in Brave and Kagi (intitle:, inurl:)
+- Date filtering: Available in Brave and Kagi (before:, after:)
+- Exact phrase matching: Available in Brave and Kagi ("phrase")
+
+#### Example Usage
+```typescript
+// Using Brave or Kagi with query string operators
+{
+  "query": "filetype:pdf site:microsoft.com typescript guide"
+}
+
+// Using Tavily with API parameters
+{
+  "query": "typescript guide",
+  "include_domains": ["microsoft.com"],
+  "exclude_domains": ["github.com"]
+}
+```
+
+#### Provider Capabilities
+- **Brave Search**: Full native operator support in query string
+- **Kagi Search**: Complete operator support in query string
+- **Tavily Search**: Domain filtering through API parameters
 
 ### 🤖 AI Response Tools
 

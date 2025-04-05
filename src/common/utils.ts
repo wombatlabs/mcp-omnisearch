@@ -118,3 +118,139 @@ export const retry_with_backoff = async <T>(
 		}
 	}
 };
+
+export interface SearchOperator {
+	type:
+		| 'site'
+		| 'exclude_site'
+		| 'filetype'
+		| 'intitle'
+		| 'inurl'
+		| 'before'
+		| 'after'
+		| 'exact'
+		| 'boolean';
+	value: string;
+	original_text: string;
+}
+
+export interface ParsedQuery {
+	base_query: string;
+	operators: SearchOperator[];
+}
+
+const operator_patterns = {
+	site: /site:([^\s]+)/g,
+	exclude_site: /-site:([^\s]+)/g,
+	filetype: /filetype:([^\s]+)/g,
+	intitle: /intitle:([^\s]+)/g,
+	inurl: /inurl:([^\s]+)/g,
+	before: /before:(\d{4}(?:-\d{2}(?:-\d{2})?)?)/g,
+	after: /after:(\d{4}(?:-\d{2}(?:-\d{2})?)?)/g,
+	exact: /"([^"]+)"/g,
+	boolean: /\b(AND|OR|NOT)\b/g,
+};
+
+export const parse_search_operators = (
+	query: string,
+): ParsedQuery => {
+	const operators: SearchOperator[] = [];
+	let modified_query = query;
+
+	// Extract operators
+	Object.entries(operator_patterns).forEach(([type, pattern]) => {
+		modified_query = modified_query.replace(
+			pattern,
+			(match, value) => {
+				operators.push({
+					type: type as SearchOperator['type'],
+					value: value,
+					original_text: match,
+				});
+				return '';
+			},
+		);
+	});
+
+	// Clean up the base query
+	const base_query = modified_query.replace(/\s+/g, ' ').trim();
+
+	return {
+		base_query,
+		operators,
+	};
+};
+
+export interface SearchParams {
+	query: string;
+	include_domains?: string[];
+	exclude_domains?: string[];
+	file_type?: string;
+	title_filter?: string;
+	url_filter?: string;
+	date_before?: string;
+	date_after?: string;
+	exact_phrases?: string[];
+	boolean_operators?: {
+		type: 'AND' | 'OR' | 'NOT';
+		terms: string[];
+	}[];
+}
+
+export const apply_search_operators = (
+	parsed_query: ParsedQuery,
+): SearchParams => {
+	const params: SearchParams = {
+		query: parsed_query.base_query,
+	};
+
+	for (const operator of parsed_query.operators) {
+		switch (operator.type) {
+			case 'site':
+				params.include_domains = [
+					...(params.include_domains || []),
+					operator.value,
+				];
+				break;
+			case 'exclude_site':
+				params.exclude_domains = [
+					...(params.exclude_domains || []),
+					operator.value,
+				];
+				break;
+			case 'filetype':
+				params.file_type = operator.value;
+				break;
+			case 'intitle':
+				params.title_filter = operator.value;
+				break;
+			case 'inurl':
+				params.url_filter = operator.value;
+				break;
+			case 'before':
+				params.date_before = operator.value;
+				break;
+			case 'after':
+				params.date_after = operator.value;
+				break;
+			case 'exact':
+				params.exact_phrases = [
+					...(params.exact_phrases || []),
+					operator.value,
+				];
+				break;
+			case 'boolean':
+				// Handle boolean operators in the query string
+				if (!params.boolean_operators) {
+					params.boolean_operators = [];
+				}
+				params.boolean_operators.push({
+					type: operator.value as 'AND' | 'OR' | 'NOT',
+					terms: [],
+				});
+				break;
+		}
+	}
+
+	return params;
+};

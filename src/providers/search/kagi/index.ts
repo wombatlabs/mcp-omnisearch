@@ -6,7 +6,9 @@ import {
 	SearchResult,
 } from '../../../common/types.js';
 import {
+	apply_search_operators,
 	handle_rate_limit,
+	parse_search_operators,
 	retry_with_backoff,
 	sanitize_query,
 	validate_api_key,
@@ -29,7 +31,7 @@ interface KagiSearchResponse {
 export class KagiSearchProvider implements SearchProvider {
 	name = 'kagi';
 	description =
-		'High-quality search results with minimal advertising influence, focused on authoritative sources. Features strong privacy protection and access to specialized knowledge indexes. Best for research, technical documentation, and finding high-quality content without SEO manipulation.';
+		'High-quality search results with minimal advertising influence, focused on authoritative sources. Supports search operators in query string (site:, -site:, filetype:, intitle:, inurl:, before:, after:, and exact phrases). Features strong privacy protection and access to specialized knowledge indexes. Best for research, technical documentation, and finding high-quality content without SEO manipulation.';
 
 	async search(params: BaseSearchParams): Promise<SearchResult[]> {
 		const api_key = validate_api_key(
@@ -37,25 +39,76 @@ export class KagiSearchProvider implements SearchProvider {
 			this.name,
 		);
 
+		// Parse search operators from the query
+		const parsed_query = parse_search_operators(params.query);
+		const search_params = apply_search_operators(parsed_query);
+
 		const search_request = async () => {
 			try {
+				let query = sanitize_query(search_params.query);
 				const query_params = new URLSearchParams({
-					q: sanitize_query(params.query),
+					q: query,
 					limit: (params.limit ?? 10).toString(),
 				});
 
-				if (params.include_domains?.length) {
-					query_params.append(
-						'filter_sites',
-						params.include_domains.join(','),
-					);
+				// Handle domain filters using query string operators
+				const include_domains = [
+					...(params.include_domains ?? []),
+					...(search_params.include_domains ?? []),
+				];
+				if (include_domains.length) {
+					const domain_filter = include_domains
+						.map((domain) => `site:${domain}`)
+						.join(' OR ');
+					query = `${query} (${domain_filter})`;
 				}
 
-				if (params.exclude_domains?.length) {
-					query_params.append(
-						'exclude_sites',
-						params.exclude_domains.join(','),
-					);
+				const exclude_domains = [
+					...(params.exclude_domains ?? []),
+					...(search_params.exclude_domains ?? []),
+				];
+				if (exclude_domains.length) {
+					query = `${query} ${exclude_domains
+						.map((domain) => `-site:${domain}`)
+						.join(' ')}`;
+				}
+
+				// Update query parameter with domain filters
+				query_params.set('q', query);
+
+				// Add file type filter
+				if (search_params.file_type) {
+					query_params.append('file_type', search_params.file_type);
+				}
+
+				// Add time range filters
+				if (search_params.date_before || search_params.date_after) {
+					const time_range: string[] = [];
+					if (search_params.date_after) {
+						time_range.push(`after:${search_params.date_after}`);
+					}
+					if (search_params.date_before) {
+						time_range.push(`before:${search_params.date_before}`);
+					}
+					query_params.append('time_range', time_range.join(','));
+				}
+
+				// Add title and URL filters to the query
+				if (search_params.title_filter) {
+					query += ` intitle:${search_params.title_filter}`;
+					query_params.set('q', query);
+				}
+				if (search_params.url_filter) {
+					query += ` inurl:${search_params.url_filter}`;
+					query_params.set('q', query);
+				}
+
+				// Add exact phrases
+				if (search_params.exact_phrases?.length) {
+					query += ` ${search_params.exact_phrases
+						.map((phrase) => `"${phrase}"`)
+						.join(' ')}`;
+					query_params.set('q', query);
 				}
 
 				const response = await fetch(
