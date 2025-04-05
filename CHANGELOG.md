@@ -1,5 +1,12 @@
 # mcp-omnisearch
 
+## 0.0.5
+
+### Patch Changes
+
+- 295f28b: Add search operator support and update provider
+  descriptions
+
 ## 0.0.4
 
 ### Patch Changes
