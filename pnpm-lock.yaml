@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.13.0
+        specifier: ^1.15.1
         version: 1.15.1
     devDependencies:
       '@changesets/cli':
