@@ -44,17 +44,9 @@ RUN echo '{\
   }\
 }' > /app/mcpo-config.json
 
-# Create startup script that substitutes environment variables
-COPY <<EOF /app/start.sh
-#!/bin/sh
-# Substitute environment variables in config
-envsubst < /app/mcpo-config.json > /app/mcpo-config-final.json
-
-# Start MCPO with the config
-exec uv tool run mcpo --port \${PORT:-8000} --config /app/mcpo-config-final.json
-EOF
-
-RUN chmod +x /app/start.sh
+# Create startup script file
+RUN printf '#!/bin/sh\n# Substitute environment variables in config\nenvsubst < /app/mcpo-config.json > /app/mcpo-config-final.json\n\n# Start MCPO with the config\nexec uv tool run mcpo --port ${PORT:-8000} --config /app/mcpo-config-final.json\n' > /app/start.sh && \
+    chmod +x /app/start.sh
 
 # Expose port for MCPO
 EXPOSE 8000
