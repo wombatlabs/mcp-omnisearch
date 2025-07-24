@@ -28,5 +28,5 @@ EXPOSE 3000
 # Set environment to production
 ENV NODE_ENV=production
 
-# Run the MCP server
-CMD ["node", "dist/index.js"]
+# Run the MCP server & stay alive
+CMD ["sh", "-c", "node dist/index.js & wait"]
