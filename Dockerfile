@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install system dependencies including Python and uv
 RUN apk add --no-cache python3 py3-pip gettext && \
-    pip3 install uv
+    pip3 install --break-system-packages uv
 
 # Install pnpm globally
 RUN npm install -g pnpm
