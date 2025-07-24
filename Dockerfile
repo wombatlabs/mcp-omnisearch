@@ -4,8 +4,8 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Install pnpm globally and uvx for mcpo
+RUN npm install -g pnpm && npm install -g @antfu/ni
 
 # Copy package files for dependency installation
 COPY package.json pnpm-lock.yaml ./
@@ -22,11 +22,41 @@ RUN pnpm run build
 # Remove development dependencies to reduce image size
 RUN pnpm prune --prod
 
-# Expose port
-EXPOSE 3000
+# Create MCPO config file
+RUN echo '{\
+  "mcpServers": {\
+    "omnisearch": {\
+      "command": "node",\
+      "args": ["dist/index.js"],\
+      "env": {\
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}",\
+        "TAVILY_API_KEY": "${TAVILY_API_KEY}",\
+        "KAGI_API_KEY": "${KAGI_API_KEY}",\
+        "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}",\
+        "JINA_AI_API_KEY": "${JINA_AI_API_KEY}",\
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"\
+      }\
+    }\
+  }\
+}' > /app/mcpo-config.json
+
+# Create startup script that substitutes environment variables
+RUN echo '#!/bin/sh\n\
+# Substitute environment variables in config\n\
+envsubst < /app/mcpo-config.json > /app/mcpo-config-final.json\n\
+\n\
+# Start MCPO with the config\n\
+exec uvx mcpo --port ${PORT:-8000} --config /app/mcpo-config-final.json' > /app/start.sh && \
+chmod +x /app/start.sh
+
+# Install envsubst for environment variable substitution
+RUN apk add --no-cache gettext
+
+# Expose port for MCPO
+EXPOSE 8000
 
 # Set environment to production
 ENV NODE_ENV=production
 
-# Run the MCP server & stay alive
-CMD ["sh", "-c", "node dist/index.js < /dev/null & sleep infinity"]
+# Run the startup script
+CMD ["/app/start.sh"]
