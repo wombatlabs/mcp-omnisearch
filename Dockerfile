@@ -29,4 +29,4 @@ EXPOSE 3000
 ENV NODE_ENV=production
 
 # Run the MCP server & stay alive
-CMD ["sh", "-c", "node dist/index.js & wait"]
+CMD ["sh", "-c", "node dist/index.js < /dev/null & sleep infinity"]
