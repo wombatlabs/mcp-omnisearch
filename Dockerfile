@@ -4,8 +4,12 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Install pnpm globally and uvx for mcpo
-RUN npm install -g pnpm && npm install -g @antfu/ni
+# Install system dependencies including Python and uv
+RUN apk add --no-cache python3 py3-pip gettext && \
+    pip3 install uv
+
+# Install pnpm globally
+RUN npm install -g pnpm
 
 # Copy package files for dependency installation
 COPY package.json pnpm-lock.yaml ./
@@ -46,11 +50,8 @@ RUN echo '#!/bin/sh\n\
 envsubst < /app/mcpo-config.json > /app/mcpo-config-final.json\n\
 \n\
 # Start MCPO with the config\n\
-exec uvx mcpo --port ${PORT:-8000} --config /app/mcpo-config-final.json' > /app/start.sh && \
+exec uv tool run mcpo --port ${PORT:-8000} --config /app/mcpo-config-final.json' > /app/start.sh && \
 chmod +x /app/start.sh
-
-# Install envsubst for environment variable substitution
-RUN apk add --no-cache gettext
 
 # Expose port for MCPO
 EXPOSE 8000
