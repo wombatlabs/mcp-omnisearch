@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.7
+
+### Patch Changes
+
+- 95e671f: update documentation
+
 ## 0.0.6
 
 ### Patch Changes
