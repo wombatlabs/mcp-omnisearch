@@ -494,6 +494,80 @@ Example:
 }
 ```
 
+## Docker Deployment
+
+MCP Omnisearch supports containerized deployment using Docker with MCPO (Model Context Protocol Over HTTP) integration, enabling cloud deployment and OpenAPI access.
+
+### Quick Start with Docker
+
+1. **Using Docker Compose (Recommended)**:
+
+```bash
+# Clone the repository
+git clone https://github.com/spences10/mcp-omnisearch.git
+cd mcp-omnisearch
+
+# Create .env file with your API keys
+echo "TAVILY_API_KEY=your-tavily-key" > .env
+echo "KAGI_API_KEY=your-kagi-key" >> .env
+echo "PERPLEXITY_API_KEY=your-perplexity-key" >> .env
+# Add other API keys as needed
+
+# Start the container
+docker-compose up -d
+```
+
+2. **Using Docker directly**:
+
+```bash
+docker build -t mcp-omnisearch .
+docker run -d \
+  -p 8000:8000 \
+  -e TAVILY_API_KEY=your-tavily-key \
+  -e KAGI_API_KEY=your-kagi-key \
+  -e PERPLEXITY_API_KEY=your-perplexity-key \
+  --name mcp-omnisearch \
+  mcp-omnisearch
+```
+
+### Container Environment Variables
+
+Configure the container using environment variables for each provider:
+
+- `TAVILY_API_KEY`: For Tavily Search
+- `PERPLEXITY_API_KEY`: For Perplexity AI  
+- `KAGI_API_KEY`: For Kagi services (FastGPT, Summarizer, Enrichment)
+- `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
+- `BRAVE_API_KEY`: For Brave Search
+- `FIRECRAWL_API_KEY`: For Firecrawl services
+- `PORT`: Container port (defaults to 8000)
+
+### OpenAPI Access
+
+Once deployed, the MCP server is accessible via OpenAPI at:
+- **Base URL**: `http://your-container-host:8000`
+- **OpenAPI Endpoint**: `/omnisearch`
+- **Compatible with**: OpenWebUI and other tools expecting OpenAPI
+
+### Cloud Deployment
+
+The containerized version can be deployed to any container platform that supports Docker:
+- Cloud Run (Google Cloud)
+- Container Instances (Azure)  
+- ECS/Fargate (AWS)
+- Railway, Render, Fly.io
+- Any Kubernetes cluster
+
+Example deployment to a cloud platform:
+```bash
+# Build and tag for your registry
+docker build -t your-registry/mcp-omnisearch:latest .
+docker push your-registry/mcp-omnisearch:latest
+
+# Deploy with your platform's CLI or web interface
+# Configure environment variables through your platform's settings
+```
+
 ## Development
 
 ### Setup
