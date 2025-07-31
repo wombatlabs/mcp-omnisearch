@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.6
+
+### Patch Changes
+
+- feat: add Docker support with MCPO integration for cloud deployment
+
 ## 0.0.5
 
 ### Patch Changes
