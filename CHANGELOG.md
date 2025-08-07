@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.8
+
+### Patch Changes
+
+- 50ac221: added firecrawl shelf host env variable
+
 ## 0.0.7
 
 ### Patch Changes
