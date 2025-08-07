@@ -15,26 +15,35 @@ processing, and enhancement features through a single interface.
 ### 🔍 Search Tools
 
 - **Tavily Search**: Optimized for factual information with strong
-  citation support. Supports domain filtering through API parameters (include_domains/exclude_domains).
+  citation support. Supports domain filtering through API parameters
+  (include_domains/exclude_domains).
 - **Brave Search**: Privacy-focused search with good technical content
-  coverage. Features native support for search operators (site:, -site:, filetype:, intitle:, inurl:, before:, after:, and exact phrases).
+  coverage. Features native support for search operators (site:,
+  -site:, filetype:, intitle:, inurl:, before:, after:, and exact
+  phrases).
 - **Kagi Search**: High-quality search results with minimal
-  advertising influence, focused on authoritative sources. Supports search operators in query string (site:, -site:, filetype:, intitle:, inurl:, before:, after:, and exact phrases).
+  advertising influence, focused on authoritative sources. Supports
+  search operators in query string (site:, -site:, filetype:,
+  intitle:, inurl:, before:, after:, and exact phrases).
 
 ### 🎯 Search Operators
 
-MCP Omnisearch provides powerful search capabilities through operators and parameters:
+MCP Omnisearch provides powerful search capabilities through operators
+and parameters:
 
 #### Common Search Features
+
 - Domain filtering: Available across all providers
   - Tavily: Through API parameters (include_domains/exclude_domains)
   - Brave & Kagi: Through site: and -site: operators
 - File type filtering: Available in Brave and Kagi (filetype:)
-- Title and URL filtering: Available in Brave and Kagi (intitle:, inurl:)
+- Title and URL filtering: Available in Brave and Kagi (intitle:,
+  inurl:)
 - Date filtering: Available in Brave and Kagi (before:, after:)
 - Exact phrase matching: Available in Brave and Kagi ("phrase")
 
 #### Example Usage
+
 ```typescript
 // Using Brave or Kagi with query string operators
 {
@@ -50,6 +59,7 @@ MCP Omnisearch provides powerful search capabilities through operators and param
 ```
 
 #### Provider Capabilities
+
 - **Brave Search**: Full native operator support in query string
 - **Kagi Search**: Complete operator support in query string
 - **Tavily Search**: Domain filtering through API parameters
@@ -129,7 +139,8 @@ Add this to your Cline MCP settings:
 				"KAGI_API_KEY": "your-kagi-key",
 				"JINA_AI_API_KEY": "your-jina-key",
 				"BRAVE_API_KEY": "your-brave-key",
-				"FIRECRAWL_API_KEY": "your-firecrawl-key"
+				"FIRECRAWL_API_KEY": "your-firecrawl-key",
+				"FIRECRAWL_BASE_URL": "http://localhost:3002"
 			},
 			"disabled": false,
 			"autoApprove": []
@@ -150,7 +161,7 @@ For WSL environments, add this to your Claude Desktop configuration:
 			"args": [
 				"bash",
 				"-c",
-				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 FIRECRAWL_API_KEY=key6 node /path/to/mcp-omnisearch/dist/index.js"
+				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 FIRECRAWL_API_KEY=key6 FIRECRAWL_BASE_URL=http://localhost:3002 node /path/to/mcp-omnisearch/dist/index.js"
 			]
 		}
 	}
@@ -170,9 +181,43 @@ API keys will be activated:
 - `BRAVE_API_KEY`: For Brave Search
 - `FIRECRAWL_API_KEY`: For Firecrawl services (Scrape, Crawl, Map,
   Extract, Actions)
+- `FIRECRAWL_BASE_URL`: For self-hosted Firecrawl instances (optional,
+  defaults to Firecrawl cloud service)
 
 You can start with just one or two API keys and add more later as
 needed. The server will log which providers are available on startup.
+
+### Self-Hosted Firecrawl Configuration
+
+If you're running a self-hosted instance of Firecrawl, you can
+configure MCP Omnisearch to use it by setting the `FIRECRAWL_BASE_URL`
+environment variable. This allows you to maintain complete control
+over your data processing pipeline.
+
+**Self-hosted Firecrawl setup:**
+
+1. Follow the
+   [Firecrawl self-hosting guide](https://docs.firecrawl.dev/contributing/self-host)
+2. Set up your Firecrawl instance (default runs on
+   `http://localhost:3002`)
+3. Configure MCP Omnisearch with your self-hosted URL:
+
+```bash
+FIRECRAWL_BASE_URL=http://localhost:3002
+# or for a remote self-hosted instance:
+FIRECRAWL_BASE_URL=https://your-firecrawl-domain.com
+```
+
+**Important notes:**
+
+- If `FIRECRAWL_BASE_URL` is not set, MCP Omnisearch will default to
+  the Firecrawl cloud service
+- Self-hosted instances support the same API endpoints (`/v1/scrape`,
+  `/v1/crawl`, etc.)
+- You'll still need a `FIRECRAWL_API_KEY` even for self-hosted
+  instances
+- Self-hosted Firecrawl provides enhanced security and customization
+  options
 
 ## API
 
@@ -496,7 +541,9 @@ Example:
 
 ## Docker Deployment
 
-MCP Omnisearch supports containerized deployment using Docker with MCPO (Model Context Protocol Over HTTP) integration, enabling cloud deployment and OpenAPI access.
+MCP Omnisearch supports containerized deployment using Docker with
+MCPO (Model Context Protocol Over HTTP) integration, enabling cloud
+deployment and OpenAPI access.
 
 ### Quick Start with Docker
 
@@ -535,30 +582,35 @@ docker run -d \
 Configure the container using environment variables for each provider:
 
 - `TAVILY_API_KEY`: For Tavily Search
-- `PERPLEXITY_API_KEY`: For Perplexity AI  
+- `PERPLEXITY_API_KEY`: For Perplexity AI
 - `KAGI_API_KEY`: For Kagi services (FastGPT, Summarizer, Enrichment)
 - `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
 - `BRAVE_API_KEY`: For Brave Search
 - `FIRECRAWL_API_KEY`: For Firecrawl services
+- `FIRECRAWL_BASE_URL`: For self-hosted Firecrawl instances (optional)
 - `PORT`: Container port (defaults to 8000)
 
 ### OpenAPI Access
 
 Once deployed, the MCP server is accessible via OpenAPI at:
+
 - **Base URL**: `http://your-container-host:8000`
 - **OpenAPI Endpoint**: `/omnisearch`
 - **Compatible with**: OpenWebUI and other tools expecting OpenAPI
 
 ### Cloud Deployment
 
-The containerized version can be deployed to any container platform that supports Docker:
+The containerized version can be deployed to any container platform
+that supports Docker:
+
 - Cloud Run (Google Cloud)
-- Container Instances (Azure)  
+- Container Instances (Azure)
 - ECS/Fargate (AWS)
 - Railway, Render, Fly.io
 - Any Kubernetes cluster
 
 Example deployment to a cloud platform:
+
 ```bash
 # Build and tag for your registry
 docker build -t your-registry/mcp-omnisearch:latest .
