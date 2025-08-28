@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.10
+
+### Patch Changes
+
+- 9bab891: doesn't break if no GitHub key added
+
 ## 0.0.9
 
 ### Patch Changes
