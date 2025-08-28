@@ -51,16 +51,6 @@ export class GitHubSearchProvider implements SearchProvider {
 	description =
 		'Search for code on GitHub. This is ideal for finding code examples, tracking down function definitions, or locating files with specific names or paths. Supports advanced query syntax with qualifiers like `filename:`, `path:`, `repo:`, `user:`, `language:`, and `in:file`. For example, to find a file named `settings.json` in a `.claude` directory, you could use the query: `filename:settings.json path:.claude`';
 
-	private octokit: Octokit;
-
-	constructor() {
-		const api_key = validate_api_key(
-			config.search.github.api_key,
-			this.name,
-		);
-		this.octokit = new Octokit({ auth: api_key });
-	}
-
 	// Main search method for code search (default behavior)
 	async search(params: BaseSearchParams): Promise<SearchResult[]> {
 		return this.search_code(params);
@@ -70,10 +60,16 @@ export class GitHubSearchProvider implements SearchProvider {
 	async search_code(
 		params: BaseSearchParams & { include_snippets?: boolean },
 	): Promise<SearchResult[]> {
+		const api_key = validate_api_key(
+			config.search.github.api_key,
+			this.name,
+		);
+		const octokit = new Octokit({ auth: api_key });
+
 		const search_request = async () => {
 			try {
 				// Enable text matches to get better snippets
-				const response = await this.octokit.rest.search.code({
+				const response = await octokit.rest.search.code({
 					q: params.query,
 					per_page: params.limit ?? 10,
 					// Request text matches for better snippets
@@ -126,9 +122,15 @@ export class GitHubSearchProvider implements SearchProvider {
 			sort?: 'stars' | 'forks' | 'updated';
 		},
 	): Promise<SearchResult[]> {
+		const api_key = validate_api_key(
+			config.search.github.api_key,
+			this.name,
+		);
+		const octokit = new Octokit({ auth: api_key });
+
 		const search_request = async () => {
 			try {
-				const response = await this.octokit.rest.search.repos({
+				const response = await octokit.rest.search.repos({
 					q: params.query,
 					per_page: params.limit ?? 10,
 					sort: params.sort,
@@ -182,9 +184,15 @@ export class GitHubSearchProvider implements SearchProvider {
 	async search_users(
 		params: BaseSearchParams,
 	): Promise<SearchResult[]> {
+		const api_key = validate_api_key(
+			config.search.github.api_key,
+			this.name,
+		);
+		const octokit = new Octokit({ auth: api_key });
+
 		const search_request = async () => {
 			try {
-				const response = await this.octokit.rest.search.users({
+				const response = await octokit.rest.search.users({
 					q: params.query,
 					per_page: params.limit ?? 10,
 				});
