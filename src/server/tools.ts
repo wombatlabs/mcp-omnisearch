@@ -52,8 +52,10 @@ class ToolRegistry {
 		// Register tool list handler
 		server.setRequestHandler(ListToolsRequestSchema, async () => ({
 			tools: [
-				...Array.from(this.search_providers.values()).map(
-					(provider) => ({
+				// Standard search providers (renamed for clarity)
+				...Array.from(this.search_providers.values())
+					.filter((provider) => provider.name !== 'github')
+					.map((provider) => ({
 						name: `${provider.name}_search`,
 						description: provider.description,
 						inputSchema: {
@@ -84,8 +86,82 @@ class ToolRegistry {
 							},
 							required: ['query'],
 						},
-					}),
-				),
+					})),
+				// GitHub-specific search tools
+				...Array.from(this.search_providers.values())
+					.filter((p) => p.name === 'github')
+					.flatMap(() => [
+						{
+							name: 'github_search',
+							description:
+								'Search for code on GitHub. This is ideal for finding code examples, tracking down function definitions, or locating files with specific names or paths. Supports advanced query syntax with qualifiers like `filename:`, `path:`, `repo:`, `user:`, `language:`, and `in:file`. For example, to find a file named `settings.json` in a `.claude` directory, you could use the query: `filename:settings.json path:.claude`',
+							inputSchema: {
+								type: 'object',
+								properties: {
+									query: {
+										type: 'string',
+										description: 'Search query',
+									},
+									limit: {
+										type: 'number',
+										description:
+											'Maximum number of results to return',
+										minimum: 1,
+										maximum: 50,
+									},
+								},
+								required: ['query'],
+							},
+						},
+						{
+							name: 'github_repository_search',
+							description: 'Search for repositories on GitHub',
+							inputSchema: {
+								type: 'object',
+								properties: {
+									query: {
+										type: 'string',
+										description: 'Search query',
+									},
+									limit: {
+										type: 'number',
+										description:
+											'Maximum number of results to return',
+										minimum: 1,
+										maximum: 50,
+									},
+									sort: {
+										type: 'string',
+										enum: ['stars', 'forks', 'updated'],
+										description: 'Sorts the results of a search.',
+									},
+								},
+								required: ['query'],
+							},
+						},
+						{
+							name: 'github_user_search',
+							description:
+								'Search for users and organizations on GitHub',
+							inputSchema: {
+								type: 'object',
+								properties: {
+									query: {
+										type: 'string',
+										description: 'Search query',
+									},
+									limit: {
+										type: 'number',
+										description:
+											'Maximum number of results to return',
+										minimum: 1,
+										maximum: 50,
+									},
+								},
+								required: ['query'],
+							},
+						},
+					]),
 				...Array.from(this.processing_providers.values()).map(
 					(provider) => ({
 						name: `${provider.name}_process`,
@@ -160,6 +236,14 @@ class ToolRegistry {
 							],
 							isError: true,
 						};
+					}
+
+					// Handle GitHub-specific tools with custom routing
+					if (request.params.name.startsWith('github_')) {
+						return this.handle_github_tools(
+							request.params.name,
+							args,
+						);
 					}
 
 					switch (action) {
@@ -326,6 +410,84 @@ class ToolRegistry {
 				}
 			},
 		);
+	}
+
+	// GitHub-specific tool handler
+	private async handle_github_tools(tool_name: string, args: any) {
+		const provider = this.search_providers.get('github') as any;
+		if (!provider) {
+			return {
+				content: [
+					{
+						type: 'text',
+						text: 'GitHub search provider not available',
+					},
+				],
+				isError: true,
+			};
+		}
+
+		if (!('query' in args) || typeof args.query !== 'string') {
+			return {
+				content: [
+					{
+						type: 'text',
+						text: 'Missing or invalid query parameter',
+					},
+				],
+				isError: true,
+			};
+		}
+
+		const base_params = {
+			query: args.query,
+			limit: typeof args.limit === 'number' ? args.limit : undefined,
+		};
+
+		try {
+			let results;
+			switch (tool_name) {
+				case 'github_search':
+					results = await provider.search_code(base_params);
+					break;
+				case 'github_repository_search':
+					const repo_params = {
+						...base_params,
+						sort:
+							typeof args.sort === 'string' ? args.sort : undefined,
+					};
+					results = await provider.search_repositories(repo_params);
+					break;
+				case 'github_user_search':
+					results = await provider.search_users(base_params);
+					break;
+				default:
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Unknown GitHub tool: ${tool_name}`,
+							},
+						],
+						isError: true,
+					};
+			}
+
+			return {
+				content: [
+					{
+						type: 'text',
+						text: JSON.stringify(results, null, 2),
+					},
+				],
+			};
+		} catch (error) {
+			const error_response = create_error_response(error as Error);
+			return {
+				content: [{ type: 'text', text: error_response.error }],
+				isError: true,
+			};
+		}
 	}
 }
 

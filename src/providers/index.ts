@@ -11,6 +11,7 @@ import { JinaReaderProvider } from './processing/jina_reader/index.js';
 import { KagiSummarizerProvider } from './processing/kagi_summarizer/index.js';
 import { TavilyExtractProvider } from './processing/tavily_extract/index.js';
 import { BraveSearchProvider } from './search/brave/index.js';
+import { GitHubSearchProvider } from './search/github/index.js';
 import { KagiSearchProvider } from './search/kagi/index.js';
 import { TavilySearchProvider } from './search/tavily/index.js';
 
@@ -35,6 +36,10 @@ export const initialize_providers = () => {
 
 	if (is_api_key_valid(config.search.kagi.api_key, 'kagi')) {
 		register_search_provider(new KagiSearchProvider());
+	}
+
+	if (is_api_key_valid(config.search.github.api_key, 'github')) {
+		register_search_provider(new GitHubSearchProvider());
 	}
 
 	// Initialize AI response providers (using SearchProvider interface for result compatibility)

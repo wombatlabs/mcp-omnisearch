@@ -4,6 +4,7 @@
 export const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 export const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
 export const KAGI_API_KEY = process.env.KAGI_API_KEY;
+export const GITHUB_API_KEY = process.env.GITHUB_API_KEY;
 
 // AI provider API keys
 export const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
@@ -29,6 +30,11 @@ export const config = {
 		kagi: {
 			api_key: KAGI_API_KEY,
 			base_url: 'https://kagi.com/api/v0',
+			timeout: 20000, // 20 seconds
+		},
+		github: {
+			api_key: GITHUB_API_KEY,
+			base_url: 'https://api.github.com',
 			timeout: 20000, // 20 seconds
 		},
 	},
@@ -124,6 +130,9 @@ export const validate_config = () => {
 
 	if (!KAGI_API_KEY) missing_keys.push('KAGI_API_KEY');
 	else available_keys.push('KAGI_API_KEY');
+
+	if (!GITHUB_API_KEY) missing_keys.push('GITHUB_API_KEY');
+	else available_keys.push('GITHUB_API_KEY');
 
 	if (!PERPLEXITY_API_KEY) missing_keys.push('PERPLEXITY_API_KEY');
 	else available_keys.push('PERPLEXITY_API_KEY');
