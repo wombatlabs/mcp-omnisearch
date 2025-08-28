@@ -25,6 +25,14 @@ processing, and enhancement features through a single interface.
   advertising influence, focused on authoritative sources. Supports
   search operators in query string (site:, -site:, filetype:,
   intitle:, inurl:, before:, after:, and exact phrases).
+- **GitHub Search**: Comprehensive code search across public GitHub
+  repositories with three specialized tools:
+  - **Code Search**: Find code examples, function definitions, and
+    files using advanced syntax (`filename:`, `path:`, `repo:`,
+    `user:`, `language:`, `in:file`)
+  - **Repository Search**: Discover repositories with sorting by
+    stars, forks, or recent updates
+  - **User Search**: Find GitHub users and organizations
 
 ### 🎯 Search Operators
 
@@ -63,6 +71,13 @@ and parameters:
 - **Brave Search**: Full native operator support in query string
 - **Kagi Search**: Complete operator support in query string
 - **Tavily Search**: Domain filtering through API parameters
+- **GitHub Search**: Advanced code search syntax with qualifiers:
+  - `filename:remote.ts` - Search for specific files
+  - `path:src/lib` - Search within specific directories
+  - `repo:user/repo` - Search within specific repositories
+  - `user:username` - Search within a user's repositories
+  - `language:typescript` - Filter by programming language
+  - `in:file "export function"` - Search for text within files
 
 ### 🤖 AI Response Tools
 
@@ -139,6 +154,7 @@ Add this to your Cline MCP settings:
 				"KAGI_API_KEY": "your-kagi-key",
 				"JINA_AI_API_KEY": "your-jina-key",
 				"BRAVE_API_KEY": "your-brave-key",
+				"GITHUB_API_KEY": "your-github-key",
 				"FIRECRAWL_API_KEY": "your-firecrawl-key",
 				"FIRECRAWL_BASE_URL": "http://localhost:3002"
 			},
@@ -161,7 +177,7 @@ For WSL environments, add this to your Claude Desktop configuration:
 			"args": [
 				"bash",
 				"-c",
-				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 FIRECRAWL_API_KEY=key6 FIRECRAWL_BASE_URL=http://localhost:3002 node /path/to/mcp-omnisearch/dist/index.js"
+				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 GITHUB_API_KEY=key6 FIRECRAWL_API_KEY=key7 FIRECRAWL_BASE_URL=http://localhost:3002 node /path/to/mcp-omnisearch/dist/index.js"
 			]
 		}
 	}
@@ -179,6 +195,8 @@ API keys will be activated:
 - `KAGI_API_KEY`: For Kagi services (FastGPT, Summarizer, Enrichment)
 - `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
 - `BRAVE_API_KEY`: For Brave Search
+- `GITHUB_API_KEY`: For GitHub search services (Code, Repository, User
+  search)
 - `FIRECRAWL_API_KEY`: For Firecrawl services (Scrape, Crawl, Map,
   Extract, Actions)
 - `FIRECRAWL_BASE_URL`: For self-hosted Firecrawl instances (optional,
@@ -186,6 +204,42 @@ API keys will be activated:
 
 You can start with just one or two API keys and add more later as
 needed. The server will log which providers are available on startup.
+
+### GitHub API Key Setup
+
+To use GitHub search features, you'll need a GitHub personal access
+token with **public repository access only** for security:
+
+1. **Go to GitHub Settings**: Navigate to
+   [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
+
+2. **Create a new token**: Click "Generate new token" → "Generate new
+   token (classic)"
+
+3. **Configure token settings**:
+
+   - **Name**: `MCP Omnisearch - Public Search`
+   - **Expiration**: Choose your preferred expiration (90 days
+     recommended)
+   - **Scopes**: **Leave all checkboxes UNCHECKED**
+
+     ⚠️ **Important**: Do not select any scopes. An empty scope token
+     can only access public repositories and user profiles, which is
+     exactly what we want for search functionality.
+
+4. **Generate and copy**: Click "Generate token" and copy the token
+   immediately
+
+5. **Add to environment**: Set `GITHUB_API_KEY=your_token_here`
+
+**Security Notes**:
+
+- This token configuration ensures no access to private repositories
+- Only public code search, repository discovery, and user profiles are
+  accessible
+- Rate limits: 5,000 requests/hour for code search, 10 requests/minute
+  for code search specifically
+- You can revoke the token anytime from GitHub settings if needed
 
 ### Self-Hosted Firecrawl Configuration
 
@@ -275,6 +329,79 @@ Example:
 {
 	"query": "latest research in machine learning",
 	"language": "en"
+}
+```
+
+#### github_search
+
+Search for code on GitHub using advanced syntax. This tool searches
+through file contents in public repositories and provides code
+snippets with metadata.
+
+Parameters:
+
+- `query` (string, required): Search query with GitHub search syntax
+- `limit` (number, optional): Maximum number of results (1-50,
+  default: 10)
+
+Example:
+
+```json
+{
+	"query": "filename:remote.ts @sveltejs/kit",
+	"limit": 5
+}
+```
+
+Advanced query examples:
+
+- `"filename:config.json path:src"` - Find config.json files in src
+  directories
+- `"function fetchData language:typescript"` - Find fetchData
+  functions in TypeScript
+- `"repo:microsoft/vscode extension"` - Search within specific
+  repository
+- `"user:torvalds language:c"` - Search user's repositories for C code
+
+#### github_repository_search
+
+Discover GitHub repositories with enhanced metadata including stars,
+forks, language, and last update information.
+
+Parameters:
+
+- `query` (string, required): Repository search query
+- `limit` (number, optional): Maximum number of results (1-50,
+  default: 10)
+- `sort` (string, optional): Sort results by 'stars', 'forks', or
+  'updated'
+
+Example:
+
+```json
+{
+	"query": "sveltekit remote functions",
+	"sort": "stars",
+	"limit": 5
+}
+```
+
+#### github_user_search
+
+Find GitHub users and organizations with profile information.
+
+Parameters:
+
+- `query` (string, required): User/organization search query
+- `limit` (number, optional): Maximum number of results (1-50,
+  default: 10)
+
+Example:
+
+```json
+{
+	"query": "Rich-Harris",
+	"limit": 3
 }
 ```
 
@@ -559,6 +686,7 @@ echo "TAVILY_API_KEY=your-tavily-key" > .env
 echo "KAGI_API_KEY=your-kagi-key" >> .env
 echo "PERPLEXITY_API_KEY=your-perplexity-key" >> .env
 # Add other API keys as needed
+echo "GITHUB_API_KEY=your-github-key" >> .env
 
 # Start the container
 docker-compose up -d
@@ -573,6 +701,7 @@ docker run -d \
   -e TAVILY_API_KEY=your-tavily-key \
   -e KAGI_API_KEY=your-kagi-key \
   -e PERPLEXITY_API_KEY=your-perplexity-key \
+  -e GITHUB_API_KEY=your-github-key \
   --name mcp-omnisearch \
   mcp-omnisearch
 ```
@@ -586,6 +715,7 @@ Configure the container using environment variables for each provider:
 - `KAGI_API_KEY`: For Kagi services (FastGPT, Summarizer, Enrichment)
 - `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
 - `BRAVE_API_KEY`: For Brave Search
+- `GITHUB_API_KEY`: For GitHub search services
 - `FIRECRAWL_API_KEY`: For Firecrawl services
 - `FIRECRAWL_BASE_URL`: For self-hosted Firecrawl instances (optional)
 - `PORT`: Container port (defaults to 8000)
@@ -670,6 +800,8 @@ requirements:
 - **Kagi**: Some features limited to Business (Team) plan users
 - **Jina AI**: API key required for all services
 - **Brave**: API key from their developer portal
+- **GitHub**: Personal access token with **no scopes selected**
+  (public access only)
 - **Firecrawl**: API key required from their developer portal
 
 ### Rate Limits
