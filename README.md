@@ -116,8 +116,6 @@ and parameters:
 - **Exa Contents**: Extract full content from Exa search result IDs
 - **Exa Similar**: Find web pages semantically similar to a given URL
   using Exa
-- **Exa Research**: Create asynchronous research tasks using Exa
-  Research API
 
 ### 🔄 Enhancement Tools
 
@@ -211,7 +209,7 @@ API keys will be activated:
 - `GITHUB_API_KEY`: For GitHub search services (Code, Repository, User
   search)
 - `EXA_API_KEY`: For Exa AI services (Search, Answer, Contents,
-  Similar, Research)
+  Similar)
 - `FIRECRAWL_API_KEY`: For Firecrawl services (Scrape, Crawl, Map,
   Extract, Actions)
 - `FIRECRAWL_BASE_URL`: For self-hosted Firecrawl instances (optional,
@@ -744,31 +742,6 @@ Response includes:
 - Combined content from all similar pages
 - Similarity scores and metadata
 - Individual content for each similar page
-
-#### exa_research_process
-
-Create asynchronous research task using Exa Research API.
-
-Parameters:
-
-- `instructions` (string, required): Research instructions/topic
-- `extract_depth` (string, optional): Research depth - 'basic'
-  (default) or 'advanced' (affects timeout and thoroughness)
-
-Example:
-
-```json
-{
-	"instructions": "Research the latest developments in quantum computing applications for machine learning",
-	"extract_depth": "advanced"
-}
-```
-
-Response includes:
-
-- Comprehensive research report
-- Sources used in the research
-- Task ID and metadata
 
 ### Enhancement Tools
 

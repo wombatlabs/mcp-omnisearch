@@ -4,7 +4,6 @@ import { PerplexityProvider } from './ai_response/perplexity/index.js';
 import { JinaGroundingProvider } from './enhancement/jina_grounding/index.js';
 import { KagiEnrichmentProvider } from './enhancement/kagi_enrichment/index.js';
 import { ExaContentsProvider } from './processing/exa_contents/index.js';
-import { ExaResearchProvider } from './processing/exa_research/index.js';
 import { ExaSimilarProvider } from './processing/exa_similar/index.js';
 import { FirecrawlActionsProvider } from './processing/firecrawl_actions/index.js';
 import { FirecrawlCrawlProvider } from './processing/firecrawl_crawl/index.js';
@@ -168,15 +167,6 @@ export const initialize_providers = () => {
 		)
 	) {
 		register_processing_provider(new ExaSimilarProvider());
-	}
-
-	if (
-		is_api_key_valid(
-			config.processing.exa_research.api_key,
-			'exa_research',
-		)
-	) {
-		register_processing_provider(new ExaResearchProvider());
 	}
 
 	// Initialize enhancement providers

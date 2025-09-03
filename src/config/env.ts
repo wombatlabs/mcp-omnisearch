@@ -122,11 +122,6 @@ export const config = {
 			base_url: 'https://api.exa.ai',
 			timeout: 30000, // 30 seconds
 		},
-		exa_research: {
-			api_key: EXA_API_KEY,
-			base_url: 'https://api.exa.ai',
-			timeout: 120000, // 120 seconds - research can take longer
-		},
 	},
 	enhancement: {
 		kagi_enrichment: {
