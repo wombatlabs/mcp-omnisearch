@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server that provides unified access to
 multiple search providers and AI tools. This server combines the
-capabilities of Tavily, Perplexity, Kagi, Jina AI, Brave, and
+capabilities of Tavily, Perplexity, Kagi, Jina AI, Brave, Exa AI, and
 Firecrawl to offer comprehensive search, AI responses, content
 processing, and enhancement features through a single interface.
 
@@ -25,6 +25,9 @@ processing, and enhancement features through a single interface.
   advertising influence, focused on authoritative sources. Supports
   search operators in query string (site:, -site:, filetype:,
   intitle:, inurl:, before:, after:, and exact phrases).
+- **Exa Search**: AI-powered web search using neural and keyword
+  search. Optimized for AI applications with semantic understanding,
+  content extraction, and research capabilities.
 - **GitHub Search**: Comprehensive code search across public GitHub
   repositories with three specialized tools:
   - **Code Search**: Find code examples, function definitions, and
@@ -71,6 +74,8 @@ and parameters:
 - **Brave Search**: Full native operator support in query string
 - **Kagi Search**: Complete operator support in query string
 - **Tavily Search**: Domain filtering through API parameters
+- **Exa Search**: Domain filtering through API parameters, semantic
+  search with neural understanding
 - **GitHub Search**: Advanced code search syntax with qualifiers:
   - `filename:remote.ts` - Search for specific files
   - `path:src/lib` - Search within specific directories
@@ -85,6 +90,8 @@ and parameters:
   web search with GPT-4 Omni and Claude 3
 - **Kagi FastGPT**: Quick AI-generated answers with citations (900ms
   typical response time)
+- **Exa Answer**: Get direct AI-generated answers to questions using
+  Exa Answer API
 
 ### 📄 Content Processing Tools
 
@@ -106,6 +113,11 @@ and parameters:
   natural language prompts
 - **Firecrawl Actions**: Support for page interactions (clicking,
   scrolling, etc.) before extraction for dynamic content
+- **Exa Contents**: Extract full content from Exa search result IDs
+- **Exa Similar**: Find web pages semantically similar to a given URL
+  using Exa
+- **Exa Research**: Create asynchronous research tasks using Exa
+  Research API
 
 ### 🔄 Enhancement Tools
 
@@ -155,6 +167,7 @@ Add this to your Cline MCP settings:
 				"JINA_AI_API_KEY": "your-jina-key",
 				"BRAVE_API_KEY": "your-brave-key",
 				"GITHUB_API_KEY": "your-github-key",
+				"EXA_API_KEY": "your-exa-key",
 				"FIRECRAWL_API_KEY": "your-firecrawl-key",
 				"FIRECRAWL_BASE_URL": "http://localhost:3002"
 			},
@@ -177,7 +190,7 @@ For WSL environments, add this to your Claude Desktop configuration:
 			"args": [
 				"bash",
 				"-c",
-				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 GITHUB_API_KEY=key6 FIRECRAWL_API_KEY=key7 FIRECRAWL_BASE_URL=http://localhost:3002 node /path/to/mcp-omnisearch/dist/index.js"
+				"TAVILY_API_KEY=key1 PERPLEXITY_API_KEY=key2 KAGI_API_KEY=key3 JINA_AI_API_KEY=key4 BRAVE_API_KEY=key5 GITHUB_API_KEY=key6 EXA_API_KEY=key7 FIRECRAWL_API_KEY=key8 FIRECRAWL_BASE_URL=http://localhost:3002 node /path/to/mcp-omnisearch/dist/index.js"
 			]
 		}
 	}
@@ -197,6 +210,8 @@ API keys will be activated:
 - `BRAVE_API_KEY`: For Brave Search
 - `GITHUB_API_KEY`: For GitHub search services (Code, Repository, User
   search)
+- `EXA_API_KEY`: For Exa AI services (Search, Answer, Contents,
+  Similar, Research)
 - `FIRECRAWL_API_KEY`: For Firecrawl services (Scrape, Crawl, Map,
   Extract, Actions)
 - `FIRECRAWL_BASE_URL`: For self-hosted Firecrawl instances (optional,
@@ -405,6 +420,32 @@ Example:
 }
 ```
 
+#### exa_search
+
+AI-powered web search using neural and keyword search. Automatically
+chooses between traditional keyword search and Exa's embeddings-based
+model to find the most relevant results for your query.
+
+Parameters:
+
+- `query` (string, required): Search query
+- `limit` (number, optional): Maximum number of results (1-100,
+  default: 10)
+- `include_domains` (array, optional): Only include results from these
+  domains
+- `exclude_domains` (array, optional): Exclude results from these
+  domains
+
+Example:
+
+```json
+{
+	"query": "latest AI research papers",
+	"limit": 15,
+	"include_domains": ["arxiv.org", "scholar.google.com"]
+}
+```
+
 ### AI Response Tools
 
 #### ai_perplexity
@@ -436,6 +477,27 @@ Example:
 ```json
 {
 	"query": "What are the main features of TypeScript?"
+}
+```
+
+#### exa_answer
+
+Get direct AI-generated answers to questions using Exa Answer API.
+
+Parameters:
+
+- `query` (string, required): Question for AI response
+- `include_domains` (array, optional): Only include sources from these
+  domains
+- `exclude_domains` (array, optional): Exclude sources from these
+  domains
+
+Example:
+
+```json
+{
+	"query": "How does machine learning work?",
+	"include_domains": ["arxiv.org", "nature.com"]
 }
 ```
 
@@ -632,6 +694,82 @@ Response includes:
 - Screenshot of the page (if available)
 - Metadata including title and extraction statistics
 
+#### exa_contents_process
+
+Extract full content from Exa search result IDs.
+
+Parameters:
+
+- `ids` (string | string[], required): Exa search result ID(s) to
+  extract content from
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced'
+
+Example:
+
+```json
+{
+	"ids": ["exa-result-id-123", "exa-result-id-456"],
+	"extract_depth": "advanced"
+}
+```
+
+Response includes:
+
+- Combined content from all result IDs
+- Individual raw content for each ID
+- Metadata with word count and extraction statistics
+
+#### exa_similar_process
+
+Find web pages semantically similar to a given URL using Exa.
+
+Parameters:
+
+- `url` (string, required): URL to find similar pages for
+- `extract_depth` (string, optional): Extraction depth - 'basic'
+  (default) or 'advanced'
+
+Example:
+
+```json
+{
+	"url": "https://arxiv.org/abs/2106.09685",
+	"extract_depth": "advanced"
+}
+```
+
+Response includes:
+
+- Combined content from all similar pages
+- Similarity scores and metadata
+- Individual content for each similar page
+
+#### exa_research_process
+
+Create asynchronous research task using Exa Research API.
+
+Parameters:
+
+- `instructions` (string, required): Research instructions/topic
+- `extract_depth` (string, optional): Research depth - 'basic'
+  (default) or 'advanced' (affects timeout and thoroughness)
+
+Example:
+
+```json
+{
+	"instructions": "Research the latest developments in quantum computing applications for machine learning",
+	"extract_depth": "advanced"
+}
+```
+
+Response includes:
+
+- Comprehensive research report
+- Sources used in the research
+- Task ID and metadata
+
 ### Enhancement Tools
 
 #### enhance_kagi_enrichment
@@ -685,6 +823,7 @@ cd mcp-omnisearch
 echo "TAVILY_API_KEY=your-tavily-key" > .env
 echo "KAGI_API_KEY=your-kagi-key" >> .env
 echo "PERPLEXITY_API_KEY=your-perplexity-key" >> .env
+echo "EXA_API_KEY=your-exa-key" >> .env
 # Add other API keys as needed
 echo "GITHUB_API_KEY=your-github-key" >> .env
 
@@ -701,6 +840,7 @@ docker run -d \
   -e TAVILY_API_KEY=your-tavily-key \
   -e KAGI_API_KEY=your-kagi-key \
   -e PERPLEXITY_API_KEY=your-perplexity-key \
+  -e EXA_API_KEY=your-exa-key \
   -e GITHUB_API_KEY=your-github-key \
   --name mcp-omnisearch \
   mcp-omnisearch
@@ -716,6 +856,7 @@ Configure the container using environment variables for each provider:
 - `JINA_AI_API_KEY`: For Jina AI services (Reader, Grounding)
 - `BRAVE_API_KEY`: For Brave Search
 - `GITHUB_API_KEY`: For GitHub search services
+- `EXA_API_KEY`: For Exa AI services
 - `FIRECRAWL_API_KEY`: For Firecrawl services
 - `FIRECRAWL_BASE_URL`: For self-hosted Firecrawl instances (optional)
 - `PORT`: Container port (defaults to 8000)
@@ -802,6 +943,8 @@ requirements:
 - **Brave**: API key from their developer portal
 - **GitHub**: Personal access token with **no scopes selected**
   (public access only)
+- **Exa AI**: API key from their dashboard at
+  [dashboard.exa.ai](https://dashboard.exa.ai)
 - **Firecrawl**: API key required from their developer portal
 
 ### Rate Limits
@@ -827,4 +970,5 @@ Built on:
 - [Kagi Search](https://kagi.com)
 - [Jina AI](https://jina.ai)
 - [Brave Search](https://search.brave.com)
+- [Exa AI](https://exa.ai)
 - [Firecrawl](https://firecrawl.dev)

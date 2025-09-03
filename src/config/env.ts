@@ -5,6 +5,7 @@ export const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 export const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
 export const KAGI_API_KEY = process.env.KAGI_API_KEY;
 export const GITHUB_API_KEY = process.env.GITHUB_API_KEY;
+export const EXA_API_KEY = process.env.EXA_API_KEY;
 
 // AI provider API keys
 export const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
@@ -37,6 +38,11 @@ export const config = {
 			base_url: 'https://api.github.com',
 			timeout: 20000, // 20 seconds
 		},
+		exa: {
+			api_key: EXA_API_KEY,
+			base_url: 'https://api.exa.ai',
+			timeout: 30000, // 30 seconds
+		},
 	},
 	ai_response: {
 		perplexity: {
@@ -47,6 +53,11 @@ export const config = {
 		kagi_fastgpt: {
 			api_key: KAGI_API_KEY,
 			base_url: 'https://kagi.com/api/v0/fastgpt',
+			timeout: 30000, // 30 seconds
+		},
+		exa_answer: {
+			api_key: EXA_API_KEY,
+			base_url: 'https://api.exa.ai',
 			timeout: 30000, // 30 seconds
 		},
 	},
@@ -101,6 +112,21 @@ export const config = {
 				: 'https://api.firecrawl.dev/v1/scrape',
 			timeout: 90000, // 90 seconds - actions can take longer
 		},
+		exa_contents: {
+			api_key: EXA_API_KEY,
+			base_url: 'https://api.exa.ai',
+			timeout: 30000, // 30 seconds
+		},
+		exa_similar: {
+			api_key: EXA_API_KEY,
+			base_url: 'https://api.exa.ai',
+			timeout: 30000, // 30 seconds
+		},
+		exa_research: {
+			api_key: EXA_API_KEY,
+			base_url: 'https://api.exa.ai',
+			timeout: 120000, // 120 seconds - research can take longer
+		},
 	},
 	enhancement: {
 		kagi_enrichment: {
@@ -142,6 +168,9 @@ export const validate_config = () => {
 
 	if (!FIRECRAWL_API_KEY) missing_keys.push('FIRECRAWL_API_KEY');
 	else available_keys.push('FIRECRAWL_API_KEY');
+
+	if (!EXA_API_KEY) missing_keys.push('EXA_API_KEY');
+	else available_keys.push('EXA_API_KEY');
 
 	// Log available keys
 	if (available_keys.length > 0) {

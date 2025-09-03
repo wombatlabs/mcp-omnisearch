@@ -1,7 +1,11 @@
+import { ExaAnswerProvider } from './ai_response/exa_answer/index.js';
 import { KagiFastGPTProvider } from './ai_response/kagi_fastgpt/index.js';
 import { PerplexityProvider } from './ai_response/perplexity/index.js';
 import { JinaGroundingProvider } from './enhancement/jina_grounding/index.js';
 import { KagiEnrichmentProvider } from './enhancement/kagi_enrichment/index.js';
+import { ExaContentsProvider } from './processing/exa_contents/index.js';
+import { ExaResearchProvider } from './processing/exa_research/index.js';
+import { ExaSimilarProvider } from './processing/exa_similar/index.js';
 import { FirecrawlActionsProvider } from './processing/firecrawl_actions/index.js';
 import { FirecrawlCrawlProvider } from './processing/firecrawl_crawl/index.js';
 import { FirecrawlExtractProvider } from './processing/firecrawl_extract/index.js';
@@ -11,6 +15,7 @@ import { JinaReaderProvider } from './processing/jina_reader/index.js';
 import { KagiSummarizerProvider } from './processing/kagi_summarizer/index.js';
 import { TavilyExtractProvider } from './processing/tavily_extract/index.js';
 import { BraveSearchProvider } from './search/brave/index.js';
+import { ExaSearchProvider } from './search/exa/index.js';
 import { GitHubSearchProvider } from './search/github/index.js';
 import { KagiSearchProvider } from './search/kagi/index.js';
 import { TavilySearchProvider } from './search/tavily/index.js';
@@ -42,6 +47,10 @@ export const initialize_providers = () => {
 		register_search_provider(new GitHubSearchProvider());
 	}
 
+	if (is_api_key_valid(config.search.exa.api_key, 'exa')) {
+		register_search_provider(new ExaSearchProvider());
+	}
+
 	// Initialize AI response providers (using SearchProvider interface for result compatibility)
 	if (
 		is_api_key_valid(
@@ -59,6 +68,15 @@ export const initialize_providers = () => {
 		)
 	) {
 		register_search_provider(new KagiFastGPTProvider(), true); // AI response provider
+	}
+
+	if (
+		is_api_key_valid(
+			config.ai_response.exa_answer.api_key,
+			'exa_answer',
+		)
+	) {
+		register_search_provider(new ExaAnswerProvider(), true); // AI response provider
 	}
 
 	// Initialize processing providers
@@ -132,6 +150,33 @@ export const initialize_providers = () => {
 		)
 	) {
 		register_processing_provider(new FirecrawlActionsProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.exa_contents.api_key,
+			'exa_contents',
+		)
+	) {
+		register_processing_provider(new ExaContentsProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.exa_similar.api_key,
+			'exa_similar',
+		)
+	) {
+		register_processing_provider(new ExaSimilarProvider());
+	}
+
+	if (
+		is_api_key_valid(
+			config.processing.exa_research.api_key,
+			'exa_research',
+		)
+	) {
+		register_processing_provider(new ExaResearchProvider());
 	}
 
 	// Initialize enhancement providers
