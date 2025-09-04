@@ -1,5 +1,12 @@
 # mcp-omnisearch
 
+## 0.0.11
+
+### Patch Changes
+
+- df090fc: add exa.ai features
+- 8b18293: remove exa research feature
+
 ## 0.0.10
 
 ### Patch Changes
