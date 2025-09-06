@@ -1,25 +1,32 @@
-import { ExaAnswerProvider } from './ai_response/exa_answer/index.js';
-import { KagiFastGPTProvider } from './ai_response/kagi_fastgpt/index.js';
-import { PerplexityProvider } from './ai_response/perplexity/index.js';
-import { JinaGroundingProvider } from './enhancement/jina_grounding/index.js';
-import { KagiEnrichmentProvider } from './enhancement/kagi_enrichment/index.js';
-import { ExaContentsProvider } from './processing/exa_contents/index.js';
-import { ExaSimilarProvider } from './processing/exa_similar/index.js';
+// Import all providers from barrel exports
 import {
+	ExaAnswerProvider,
+	KagiFastGPTProvider,
+	PerplexityProvider,
+} from './ai_response/index.js';
+import {
+	JinaGroundingProvider,
+	KagiEnrichmentProvider,
+} from './enhancement/index.js';
+import {
+	ExaContentsProvider,
+	ExaSimilarProvider,
 	FirecrawlActionsProvider,
 	FirecrawlCrawlProvider,
 	FirecrawlExtractProvider,
 	FirecrawlMapProvider,
 	FirecrawlScrapeProvider,
-} from './processing/firecrawl/index.js';
-import { JinaReaderProvider } from './processing/jina_reader/index.js';
-import { KagiSummarizerProvider } from './processing/kagi_summarizer/index.js';
-import { TavilyExtractProvider } from './processing/tavily_extract/index.js';
-import { BraveSearchProvider } from './search/brave/index.js';
-import { ExaSearchProvider } from './search/exa/index.js';
-import { GitHubSearchProvider } from './search/github/index.js';
-import { KagiSearchProvider } from './search/kagi/index.js';
-import { TavilySearchProvider } from './search/tavily/index.js';
+	JinaReaderProvider,
+	KagiSummarizerProvider,
+	TavilyExtractProvider,
+} from './processing/index.js';
+import {
+	BraveSearchProvider,
+	ExaSearchProvider,
+	GitHubSearchProvider,
+	KagiSearchProvider,
+	TavilySearchProvider,
+} from './search/index.js';
 
 import { is_api_key_valid } from '../common/utils.js';
 import { config } from '../config/env.js';

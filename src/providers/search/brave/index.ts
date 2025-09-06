@@ -1,8 +1,8 @@
-import { AbstractSearchProvider } from '../../../common/abstract-search-provider.js';
 import {
+	AbstractSearchProvider,
 	BaseSearchParams,
 	SearchResult,
-} from '../../../common/types.js';
+} from '../../../common/index.js';
 import { config } from '../../../config/env.js';
 
 interface BraveSearchResponse {

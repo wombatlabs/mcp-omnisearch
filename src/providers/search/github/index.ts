@@ -1,9 +1,9 @@
 import { Octokit } from 'octokit';
-import { AbstractSearchProvider } from '../../../common/abstract-search-provider.js';
 import {
+	AbstractSearchProvider,
 	BaseSearchParams,
 	SearchResult,
-} from '../../../common/types.js';
+} from '../../../common/index.js';
 import { config } from '../../../config/env.js';
 
 // Interface for individual code search result item from GitHub API
