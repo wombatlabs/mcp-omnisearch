@@ -41,10 +41,14 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 				// Try both web and news endpoints
 				const results = await Promise.all([
 					fetch(
-						`https://kagi.com/api/v0/enrich/web?${new URLSearchParams({
-							q: sanitize_query('artificial intelligence software development'),
-							limit: '5',
-						})}`,
+						`https://kagi.com/api/v0/enrich/web?${new URLSearchParams(
+							{
+								q: sanitize_query(
+									'artificial intelligence software development',
+								),
+								limit: '5',
+							},
+						)}`,
 						{
 							method: 'GET',
 							headers: {
@@ -57,10 +61,14 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 						},
 					),
 					fetch(
-						`https://kagi.com/api/v0/enrich/news?${new URLSearchParams({
-							q: sanitize_query('artificial intelligence code generation testing'),
-							limit: '5',
-						})}`,
+						`https://kagi.com/api/v0/enrich/news?${new URLSearchParams(
+							{
+								q: sanitize_query(
+									'artificial intelligence code generation testing',
+								),
+								limit: '5',
+							},
+						)}`,
 						{
 							method: 'GET',
 							headers: {
@@ -107,7 +115,8 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 				}
 
 				if (!webResponse.ok || !webData.data) {
-					const error_message = webData.message || webResponse.statusText;
+					const error_message =
+						webData.message || webResponse.statusText;
 					switch (webResponse.status) {
 						case 401:
 							throw new ProviderError(
@@ -133,7 +142,8 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 				}
 
 				if (!newsResponse.ok || !newsData.data) {
-					const error_message = newsData.message || newsResponse.statusText;
+					const error_message =
+						newsData.message || newsResponse.statusText;
 					switch (newsResponse.status) {
 						case 401:
 							throw new ProviderError(
@@ -159,29 +169,31 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 				}
 
 				// Combine and filter results
-				const allData = [...webData.data, ...newsData.data]
-					.filter(result => 
+				const allData = [...webData.data, ...newsData.data].filter(
+					(result) =>
 						// Filter for results about software/development/AI
 						result.snippet?.toLowerCase().includes('software') ||
 						result.snippet?.toLowerCase().includes('develop') ||
 						result.snippet?.toLowerCase().includes('programming') ||
 						result.snippet?.toLowerCase().includes('code') ||
-						result.snippet?.toLowerCase().includes('artificial intelligence') ||
-						result.snippet?.toLowerCase().includes('ai')
-					);
+						result.snippet
+							?.toLowerCase()
+							.includes('artificial intelligence') ||
+						result.snippet?.toLowerCase().includes('ai'),
+				);
 
 				// Clean and combine snippets
 				const enhanced_content = allData
 					.map((result) => result.snippet)
 					.filter(Boolean)
-					.map(snippet => 
+					.map((snippet) =>
 						// Fix HTML entities
 						snippet
 							.replace(/&#39;/g, "'")
 							.replace(/&quot;/g, '"')
 							.replace(/&amp;/g, '&')
 							.replace(/&lt;/g, '<')
-							.replace(/&gt;/g, '>')
+							.replace(/&gt;/g, '>'),
 					)
 					.join('\n\n');
 

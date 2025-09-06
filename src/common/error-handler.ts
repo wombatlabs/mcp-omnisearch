@@ -6,15 +6,25 @@ export interface ErrorHandlerOptions {
 }
 
 export class ErrorHandler {
-	constructor(private provider_name: string, private options: ErrorHandlerOptions = {}) {}
+	constructor(
+		private provider_name: string,
+		private options: ErrorHandlerOptions = {},
+	) {}
 
 	handle_http_error(
 		response: Response,
 		data: any,
 		custom_message?: string,
 	): never {
-		const error_message = custom_message || data.message || data.error || response.statusText;
-		const provider_name = this.options.include_provider_name !== false ? this.provider_name : '';
+		const error_message =
+			custom_message ||
+			data.message ||
+			data.error ||
+			response.statusText;
+		const provider_name =
+			this.options.include_provider_name !== false
+				? this.provider_name
+				: '';
 
 		switch (response.status) {
 			case 400:
@@ -68,8 +78,9 @@ export class ErrorHandler {
 	}
 
 	handle_rate_limit(response?: Response): never {
-		const reset_time = response?.headers.get('x-ratelimit-reset') || 
-						 response?.headers.get('retry-after');
+		const reset_time =
+			response?.headers.get('x-ratelimit-reset') ||
+			response?.headers.get('retry-after');
 		let reset_date: Date | undefined;
 
 		if (reset_time) {
@@ -93,7 +104,8 @@ export class ErrorHandler {
 	}
 
 	handle_network_error(error: Error, custom_message?: string): never {
-		const message = custom_message || `Network error: ${error.message}`;
+		const message =
+			custom_message || `Network error: ${error.message}`;
 		throw new ProviderError(
 			ErrorType.API_ERROR,
 			message,
@@ -150,10 +162,7 @@ export class ErrorHandler {
 		);
 	}
 
-	wrap_async<T>(
-		fn: () => Promise<T>,
-		context?: string,
-	): Promise<T> {
+	wrap_async<T>(fn: () => Promise<T>, context?: string): Promise<T> {
 		return fn().catch((error) => {
 			this.handle_unknown_error(error, context);
 		});
@@ -175,16 +184,22 @@ export const handle_http_status = (
 ): void => {
 	if (status >= 400) {
 		const error_handler = new ErrorHandler(provider_name);
-		const mock_response = { 
-			status, 
-			statusText: '', 
-			headers: new Headers() 
+		const mock_response = {
+			status,
+			statusText: '',
+			headers: new Headers(),
 		} as Response;
-		error_handler.handle_http_error(mock_response, data, custom_message);
+		error_handler.handle_http_error(
+			mock_response,
+			data,
+			custom_message,
+		);
 	}
 };
 
-export const create_error_response = (error: Error): { error: string } => {
+export const create_error_response = (
+	error: Error,
+): { error: string } => {
 	if (error instanceof ProviderError) {
 		return {
 			error: `${error.provider} error: ${error.message}`,

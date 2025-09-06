@@ -83,7 +83,8 @@ export class HttpClient {
 		data: any,
 		provider_name: string,
 	): never {
-		const error_message = data.message || data.error || response.statusText;
+		const error_message =
+			data.message || data.error || response.statusText;
 
 		switch (response.status) {
 			case 401:
@@ -100,7 +101,9 @@ export class HttpClient {
 				);
 			case 429:
 				const reset_time = response.headers.get('x-ratelimit-reset');
-				const reset_date = reset_time ? new Date(reset_time) : undefined;
+				const reset_date = reset_time
+					? new Date(reset_time)
+					: undefined;
 				throw new ProviderError(
 					ErrorType.RATE_LIMIT,
 					`Rate limit exceeded for ${provider_name}${
@@ -132,11 +135,14 @@ export class HttpClient {
 		provider_name: string,
 		options: HttpClientOptions = {},
 	): Promise<HttpResponse<T>> {
-		const max_retries = options.max_retries || this.default_max_retries;
-		const initial_delay = options.initial_delay || this.default_initial_delay;
+		const max_retries =
+			options.max_retries || this.default_max_retries;
+		const initial_delay =
+			options.initial_delay || this.default_initial_delay;
 
 		return retry_with_backoff(
-			() => this.make_request<T>(url, { method: 'GET' }, provider_name),
+			() =>
+				this.make_request<T>(url, { method: 'GET' }, provider_name),
 			max_retries,
 			initial_delay,
 		);
@@ -148,8 +154,10 @@ export class HttpClient {
 		provider_name: string,
 		options: HttpClientOptions = {},
 	): Promise<HttpResponse<T>> {
-		const max_retries = options.max_retries || this.default_max_retries;
-		const initial_delay = options.initial_delay || this.default_initial_delay;
+		const max_retries =
+			options.max_retries || this.default_max_retries;
+		const initial_delay =
+			options.initial_delay || this.default_initial_delay;
 
 		return retry_with_backoff(
 			() =>
@@ -175,8 +183,10 @@ export class HttpClient {
 		provider_name: string,
 		options: HttpClientOptions = {},
 	): Promise<HttpResponse<T>> {
-		const max_retries = options.max_retries || this.default_max_retries;
-		const initial_delay = options.initial_delay || this.default_initial_delay;
+		const max_retries =
+			options.max_retries || this.default_max_retries;
+		const initial_delay =
+			options.initial_delay || this.default_initial_delay;
 
 		return retry_with_backoff(
 			() =>
@@ -202,8 +212,10 @@ export class HttpClient {
 		provider_name: string,
 		options: HttpClientOptions = {},
 	): Promise<HttpResponse<T>> {
-		const max_retries = options.max_retries || this.default_max_retries;
-		const initial_delay = options.initial_delay || this.default_initial_delay;
+		const max_retries =
+			options.max_retries || this.default_max_retries;
+		const initial_delay =
+			options.initial_delay || this.default_initial_delay;
 
 		return retry_with_backoff(
 			() =>
@@ -228,19 +240,29 @@ export class HttpClient {
 		provider_name: string,
 		options: HttpClientOptions = {},
 	): Promise<HttpResponse<T>> {
-		const max_retries = options.max_retries || this.default_max_retries;
-		const initial_delay = options.initial_delay || this.default_initial_delay;
+		const max_retries =
+			options.max_retries || this.default_max_retries;
+		const initial_delay =
+			options.initial_delay || this.default_initial_delay;
 
 		return retry_with_backoff(
-			() => this.make_request<T>(url, { method: 'DELETE' }, provider_name),
+			() =>
+				this.make_request<T>(
+					url,
+					{ method: 'DELETE' },
+					provider_name,
+				),
 			max_retries,
 			initial_delay,
 		);
 	}
 
-	with_auth(api_key: string, auth_type: 'bearer' | 'api-key' = 'bearer'): HttpClient {
+	with_auth(
+		api_key: string,
+		auth_type: 'bearer' | 'api-key' = 'bearer',
+	): HttpClient {
 		const auth_headers: Record<string, string> = {};
-		
+
 		if (auth_type === 'bearer') {
 			auth_headers['Authorization'] = `Bearer ${api_key}`;
 		} else {
@@ -273,7 +295,10 @@ export class HttpClient {
 		});
 	}
 
-	with_retry(max_retries: number, initial_delay?: number): HttpClient {
+	with_retry(
+		max_retries: number,
+		initial_delay?: number,
+	): HttpClient {
 		return new HttpClient({
 			...this.options,
 			max_retries,
@@ -282,6 +307,8 @@ export class HttpClient {
 	}
 }
 
-export const create_http_client = (options?: HttpClientOptions): HttpClient => {
+export const create_http_client = (
+	options?: HttpClientOptions,
+): HttpClient => {
 	return new HttpClient(options);
 };

@@ -382,7 +382,7 @@ export class FirecrawlProvider extends AbstractProcessingProvider {
 									? [
 											{ type: 'wait', milliseconds: 3000 },
 											{ type: 'screenshot' },
-									  ]
+										]
 									: undefined,
 							extract: {
 								schema: {
@@ -459,11 +459,11 @@ export class FirecrawlProvider extends AbstractProcessingProvider {
 								},
 								{ type: 'wait', milliseconds: 2000 },
 								{ type: 'screenshot' },
-						  ]
+							]
 						: [
 								{ type: 'wait', milliseconds: 2000 },
 								{ type: 'screenshot' },
-						  ];
+							];
 
 				const response =
 					await this.http_client.post<FirecrawlScrapeResponse>(
