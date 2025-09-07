@@ -926,7 +926,14 @@ limit errors gracefully and return appropriate error messages.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Please read CONTRIBUTING.md before opening a PR. In short:
+
+- Start by opening an issue to propose your change and align scope.
+- Prefer small, focused PRs with a clear explanation (problem →
+  approach → verification).
+- Follow provider conventions: use `src/common/http.ts` (`http_json`)
+  for HTTP, read keys from `src/config/env.ts`, respect timeouts, and
+  surface errors via `ProviderError`.
 
 ## License
 
