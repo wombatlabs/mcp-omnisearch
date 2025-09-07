@@ -1,5 +1,17 @@
 # mcp-omnisearch
 
+## 0.0.12
+
+### Patch Changes
+
+- 047898a: Refactor Kagi enrichment and Firecrawl providers to
+  http_json with timeouts
+- 3b529b0: Refactor three providers to http_json; unify auth and error
+  handling, config and run prettier
+- 8d7fd35: fix exa features
+- efa419e: Refactor Perplexity, Kagi FastGPT, Jina providers to
+  http_json
+
 ## 0.0.11
 
 ### Patch Changes
