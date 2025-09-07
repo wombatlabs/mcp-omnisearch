@@ -1,7 +1,4 @@
-node_modules/
-dist/
-*.log
-.git/
-.DS_Store
+# Package Managers
+package-lock.json
 pnpm-lock.yaml
-*.tgz
+yarn.lock

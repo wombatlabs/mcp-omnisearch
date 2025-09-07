@@ -230,6 +230,7 @@ token with **public repository access only** for security:
    token (classic)"
 
 3. **Configure token settings**:
+
    - **Name**: `MCP Omnisearch - Public Search`
    - **Expiration**: Choose your preferred expiration (90 days
      recommended)

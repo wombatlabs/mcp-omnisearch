@@ -18,6 +18,7 @@
 ### Patch Changes
 
 - 8002c78: feat: add GitHub search provider integration
+
   - Updated package.json and pnpm-lock.yaml to include Octokit for
     GitHub API interactions.
   - Enhanced SearchResult interface to include optional metadata

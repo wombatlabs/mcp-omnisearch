@@ -4,23 +4,12 @@ import {
 	ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import {
+	BaseSearchParams,
 	EnhancementProvider,
 	ProcessingProvider,
 	SearchProvider,
 } from '../common/types.js';
 import { create_error_response } from '../common/utils.js';
-import {
-	generate_enhancement_provider_schema,
-	generate_error_response,
-	generate_github_tool_schemas,
-	generate_processing_provider_schema,
-	generate_search_provider_schema,
-	generate_success_response,
-	validate_enhancement_parameters,
-	validate_github_parameters,
-	validate_processing_parameters,
-	validate_search_parameters,
-} from './schema-generator.js';
 
 // Track available providers by category
 export const available_providers = {
@@ -60,199 +49,444 @@ class ToolRegistry {
 	}
 
 	setup_tool_handlers(server: Server) {
-		// Register tool list handler using schema generator
+		// Register tool list handler
 		server.setRequestHandler(ListToolsRequestSchema, async () => ({
 			tools: [
-				// Standard search providers (excluding GitHub)
+				// Standard search providers (renamed for clarity)
 				...Array.from(this.search_providers.values())
 					.filter((provider) => provider.name !== 'github')
-					.map((provider) =>
-						generate_search_provider_schema(
-							provider.name,
-							provider.description,
-						),
-					),
+					.map((provider) => ({
+						name: `${provider.name}_search`,
+						description: provider.description,
+						inputSchema: {
+							type: 'object',
+							properties: {
+								query: {
+									type: 'string',
+									description: 'Search query',
+								},
+								limit: {
+									type: 'number',
+									description: 'Maximum number of results to return',
+									minimum: 1,
+									maximum: 50,
+								},
+								include_domains: {
+									type: 'array',
+									items: { type: 'string' },
+									description:
+										'List of domains to include in search results',
+								},
+								exclude_domains: {
+									type: 'array',
+									items: { type: 'string' },
+									description:
+										'List of domains to exclude from search results',
+								},
+							},
+							required: ['query'],
+						},
+					})),
 				// GitHub-specific search tools
-				...(this.search_providers.has('github')
-					? generate_github_tool_schemas()
-					: []),
-				// Processing providers
+				...Array.from(this.search_providers.values())
+					.filter((p) => p.name === 'github')
+					.flatMap(() => [
+						{
+							name: 'github_search',
+							description:
+								'Search for code on GitHub. This is ideal for finding code examples, tracking down function definitions, or locating files with specific names or paths. Supports advanced query syntax with qualifiers like `filename:`, `path:`, `repo:`, `user:`, `language:`, and `in:file`. For example, to find a file named `settings.json` in a `.claude` directory, you could use the query: `filename:settings.json path:.claude`',
+							inputSchema: {
+								type: 'object',
+								properties: {
+									query: {
+										type: 'string',
+										description: 'Search query',
+									},
+									limit: {
+										type: 'number',
+										description:
+											'Maximum number of results to return',
+										minimum: 1,
+										maximum: 50,
+									},
+								},
+								required: ['query'],
+							},
+						},
+						{
+							name: 'github_repository_search',
+							description: 'Search for repositories on GitHub',
+							inputSchema: {
+								type: 'object',
+								properties: {
+									query: {
+										type: 'string',
+										description: 'Search query',
+									},
+									limit: {
+										type: 'number',
+										description:
+											'Maximum number of results to return',
+										minimum: 1,
+										maximum: 50,
+									},
+									sort: {
+										type: 'string',
+										enum: ['stars', 'forks', 'updated'],
+										description: 'Sorts the results of a search.',
+									},
+								},
+								required: ['query'],
+							},
+						},
+						{
+							name: 'github_user_search',
+							description:
+								'Search for users and organizations on GitHub',
+							inputSchema: {
+								type: 'object',
+								properties: {
+									query: {
+										type: 'string',
+										description: 'Search query',
+									},
+									limit: {
+										type: 'number',
+										description:
+											'Maximum number of results to return',
+										minimum: 1,
+										maximum: 50,
+									},
+								},
+								required: ['query'],
+							},
+						},
+					]),
 				...Array.from(this.processing_providers.values()).map(
-					(provider) =>
-						generate_processing_provider_schema(
-							provider.name,
-							provider.description,
-						),
+					(provider) => ({
+						name: `${provider.name}_process`,
+						description: provider.description,
+						inputSchema: {
+							type: 'object',
+							properties: {
+								url: {
+									oneOf: [
+										{
+											type: 'string',
+											description: 'Single URL to process',
+										},
+										{
+											type: 'array',
+											items: {
+												type: 'string',
+											},
+											description: 'Multiple URLs to process',
+										},
+									],
+								},
+								extract_depth: {
+									type: 'string',
+									enum: ['basic', 'advanced'],
+									default: 'basic',
+									description:
+										'The depth of the extraction process. "advanced" retrieves more data but costs more credits.',
+								},
+							},
+							required: ['url'],
+						},
+					}),
 				),
-				// Enhancement providers
 				...Array.from(this.enhancement_providers.values()).map(
-					(provider) =>
-						generate_enhancement_provider_schema(
-							provider.name,
-							provider.description,
-						),
+					(provider) => ({
+						name: `${provider.name}_enhance`,
+						description: provider.description,
+						inputSchema: {
+							type: 'object',
+							properties: {
+								content: {
+									type: 'string',
+									description: 'Content to enhance',
+								},
+							},
+							required: ['content'],
+						},
+					}),
 				),
 			],
 		}));
 
-		// Register tool call handler with standardized validation
+		// Register tool call handler
 		server.setRequestHandler(
 			CallToolRequestSchema,
 			async (request) => {
 				try {
-					const tool_name = request.params.name;
+					// Split from the right to handle provider names that contain underscores
+					const parts = request.params.name.split('_');
+					const action = parts.pop()!; // Get last part as action
+					const provider_name = parts.join('_'); // Join remaining parts as provider name
 					const args = request.params.arguments;
 
-					// Handle GitHub-specific tools
-					if (tool_name.startsWith('github_')) {
-						return this.handle_github_tools(tool_name, args);
+					if (!args || typeof args !== 'object') {
+						return {
+							content: [
+								{
+									type: 'text',
+									text: 'Missing or invalid arguments',
+								},
+							],
+							isError: true,
+						};
 					}
 
-					// Parse tool name to determine action and provider
-					const parts = tool_name.split('_');
-					const action = parts.pop()!;
-					const provider_name = parts.join('_');
+					// Handle GitHub-specific tools with custom routing
+					if (request.params.name.startsWith('github_')) {
+						return this.handle_github_tools(
+							request.params.name,
+							args,
+						);
+					}
 
-					return await this.handle_generic_tool(
-						action,
-						provider_name,
-						args,
-					);
+					switch (action) {
+						case 'search': {
+							const provider =
+								this.search_providers.get(provider_name);
+							if (!provider) {
+								return {
+									content: [
+										{
+											type: 'text',
+											text: `Unknown search provider: ${provider_name}`,
+										},
+									],
+									isError: true,
+								};
+							}
+
+							// Type guard for search parameters
+							if (
+								!('query' in args) ||
+								typeof args.query !== 'string'
+							) {
+								return {
+									content: [
+										{
+											type: 'text',
+											text: 'Missing or invalid query parameter',
+										},
+									],
+									isError: true,
+								};
+							}
+
+							const search_params: BaseSearchParams = {
+								query: args.query,
+								limit:
+									typeof args.limit === 'number'
+										? args.limit
+										: undefined,
+								include_domains: Array.isArray(args.include_domains)
+									? args.include_domains
+									: undefined,
+								exclude_domains: Array.isArray(args.exclude_domains)
+									? args.exclude_domains
+									: undefined,
+							};
+
+							const results = await provider.search(search_params);
+							return {
+								content: [
+									{
+										type: 'text',
+										text: JSON.stringify(results, null, 2),
+									},
+								],
+							};
+						}
+
+						case 'process': {
+							const provider =
+								this.processing_providers.get(provider_name);
+							if (!provider) {
+								return {
+									content: [
+										{
+											type: 'text',
+											text: `Unknown processing provider: ${provider_name}`,
+										},
+									],
+									isError: true,
+								};
+							}
+
+							if (
+								!('url' in args) ||
+								(typeof args.url !== 'string' &&
+									!Array.isArray(args.url))
+							) {
+								return {
+									content: [
+										{
+											type: 'text',
+											text: 'Missing or invalid URL parameter',
+										},
+									],
+									isError: true,
+								};
+							}
+
+							const result = await provider.process_content(
+								args.url,
+								args.extract_depth as 'basic' | 'advanced',
+							);
+							return {
+								content: [
+									{
+										type: 'text',
+										text: JSON.stringify(result, null, 2),
+									},
+								],
+							};
+						}
+
+						case 'enhance': {
+							const provider =
+								this.enhancement_providers.get(provider_name);
+							if (!provider) {
+								return {
+									content: [
+										{
+											type: 'text',
+											text: `Unknown enhancement provider: ${provider_name}`,
+										},
+									],
+									isError: true,
+								};
+							}
+
+							if (
+								!('content' in args) ||
+								typeof args.content !== 'string'
+							) {
+								return {
+									content: [
+										{
+											type: 'text',
+											text: 'Missing or invalid content parameter',
+										},
+									],
+									isError: true,
+								};
+							}
+
+							const result = await provider.enhance_content(
+								args.content,
+							);
+							return {
+								content: [
+									{
+										type: 'text',
+										text: JSON.stringify(result, null, 2),
+									},
+								],
+							};
+						}
+
+						default:
+							return {
+								content: [
+									{ type: 'text', text: `Unknown action: ${action}` },
+								],
+								isError: true,
+							};
+					}
 				} catch (error) {
 					const error_response = create_error_response(
 						error as Error,
 					);
-					return generate_error_response(error_response.error);
+					return {
+						content: [{ type: 'text', text: error_response.error }],
+						isError: true,
+					};
 				}
 			},
 		);
-	}
-
-	// Generic tool handler for search, process, and enhance actions
-	private async handle_generic_tool(
-		action: string,
-		provider_name: string,
-		args: any,
-	) {
-		switch (action) {
-			case 'search':
-				return this.handle_search_tool(provider_name, args);
-			case 'process':
-				return this.handle_processing_tool(provider_name, args);
-			case 'enhance':
-				return this.handle_enhancement_tool(provider_name, args);
-			default:
-				return generate_error_response(`Unknown action: ${action}`);
-		}
-	}
-
-	// Handle search tool execution
-	private async handle_search_tool(provider_name: string, args: any) {
-		const provider = this.search_providers.get(provider_name);
-		if (!provider) {
-			return generate_error_response(
-				`Unknown search provider: ${provider_name}`,
-			);
-		}
-
-		const validation = validate_search_parameters(args);
-		if (!validation.isValid) {
-			return generate_error_response(validation.error!);
-		}
-
-		const results = await provider.search(validation.params!);
-		return generate_success_response(results);
-	}
-
-	// Handle processing tool execution
-	private async handle_processing_tool(
-		provider_name: string,
-		args: any,
-	) {
-		const provider = this.processing_providers.get(provider_name);
-		if (!provider) {
-			return generate_error_response(
-				`Unknown processing provider: ${provider_name}`,
-			);
-		}
-
-		const validation = validate_processing_parameters(args);
-		if (!validation.isValid) {
-			return generate_error_response(validation.error!);
-		}
-
-		const result = await provider.process_content(
-			validation.params!.url,
-			validation.params!.extract_depth,
-		);
-		return generate_success_response(result);
-	}
-
-	// Handle enhancement tool execution
-	private async handle_enhancement_tool(
-		provider_name: string,
-		args: any,
-	) {
-		const provider = this.enhancement_providers.get(provider_name);
-		if (!provider) {
-			return generate_error_response(
-				`Unknown enhancement provider: ${provider_name}`,
-			);
-		}
-
-		const validation = validate_enhancement_parameters(args);
-		if (!validation.isValid) {
-			return generate_error_response(validation.error!);
-		}
-
-		const result = await provider.enhance_content(
-			validation.params!.content,
-		);
-		return generate_success_response(result);
 	}
 
 	// GitHub-specific tool handler
 	private async handle_github_tools(tool_name: string, args: any) {
 		const provider = this.search_providers.get('github') as any;
 		if (!provider) {
-			return generate_error_response(
-				'GitHub search provider not available',
-			);
+			return {
+				content: [
+					{
+						type: 'text',
+						text: 'GitHub search provider not available',
+					},
+				],
+				isError: true,
+			};
 		}
 
-		const validation = validate_github_parameters(args);
-		if (!validation.isValid) {
-			return generate_error_response(validation.error!);
+		if (!('query' in args) || typeof args.query !== 'string') {
+			return {
+				content: [
+					{
+						type: 'text',
+						text: 'Missing or invalid query parameter',
+					},
+				],
+				isError: true,
+			};
 		}
+
+		const base_params = {
+			query: args.query,
+			limit: typeof args.limit === 'number' ? args.limit : undefined,
+		};
 
 		try {
 			let results;
-			const { query, limit, sort } = validation.params!;
-
 			switch (tool_name) {
 				case 'github_search':
-					results = await provider.search_code({ query, limit });
+					results = await provider.search_code(base_params);
 					break;
 				case 'github_repository_search':
-					results = await provider.search_repositories({
-						query,
-						limit,
-						sort,
-					});
+					const repo_params = {
+						...base_params,
+						sort:
+							typeof args.sort === 'string' ? args.sort : undefined,
+					};
+					results = await provider.search_repositories(repo_params);
 					break;
 				case 'github_user_search':
-					results = await provider.search_users({ query, limit });
+					results = await provider.search_users(base_params);
 					break;
 				default:
-					return generate_error_response(
-						`Unknown GitHub tool: ${tool_name}`,
-					);
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Unknown GitHub tool: ${tool_name}`,
+							},
+						],
+						isError: true,
+					};
 			}
 
-			return generate_success_response(results);
+			return {
+				content: [
+					{
+						type: 'text',
+						text: JSON.stringify(results, null, 2),
+					},
+				],
+			};
 		} catch (error) {
 			const error_response = create_error_response(error as Error);
-			return generate_error_response(error_response.error);
+			return {
+				content: [{ type: 'text', text: error_response.error }],
+				isError: true,
+			};
 		}
 	}
 }
