@@ -7,12 +7,12 @@ import {
 } from '../../../common/types.js';
 import {
 	apply_search_operators,
-	handle_rate_limit,
 	parse_search_operators,
 	retry_with_backoff,
 	sanitize_query,
 	validate_api_key,
 } from '../../../common/utils.js';
+import { http_json } from '../../../common/http.js';
 import { config } from '../../../config/env.js';
 
 interface TavilySearchResponse {
@@ -52,56 +52,18 @@ export class TavilySearchProvider implements SearchProvider {
 					topic: 'general',
 				};
 
-				const response = await fetch(
-					`${config.search.tavily.base_url}/search`,
-					{
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${api_key}`,
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify(request_body),
+				const data = await http_json<
+					TavilySearchResponse & { message?: string }
+				>(this.name, `${config.search.tavily.base_url}/search`, {
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${api_key}`,
+						'Content-Type': 'application/json',
 					},
-				);
+					body: JSON.stringify(request_body),
+				});
 
-				const data =
-					(await response.json()) as TavilySearchResponse & {
-						message?: string;
-					};
-
-				if (!response.ok) {
-					const error_message = data.message || response.statusText;
-					switch (response.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Tavily API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${error_message}`,
-								this.name,
-							);
-					}
-				}
-
-				return data.results.map((result) => ({
+				return (data.results || []).map((result) => ({
 					title: result.title,
 					url: result.url,
 					snippet: result.content,
