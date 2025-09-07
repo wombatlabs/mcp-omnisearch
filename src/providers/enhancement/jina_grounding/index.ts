@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	EnhancementProvider,
 	EnhancementResult,
@@ -5,7 +6,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	handle_rate_limit,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -42,55 +42,28 @@ export class JinaGroundingProvider implements EnhancementProvider {
 
 		const ground_request = async () => {
 			try {
-				const response = await fetch('https://g.jina.ai', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${api_key}`,
+				const data = await http_json<JinaGroundingResponse>(
+					this.name,
+					'https://g.jina.ai',
+					{
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${api_key}`,
+						},
+						body: JSON.stringify({ statement: content }),
+						signal: AbortSignal.timeout(
+							config.enhancement.jina_grounding.timeout,
+						),
 					},
-					body: JSON.stringify({ statement: content }),
-					signal: AbortSignal.timeout(
-						config.enhancement.jina_grounding.timeout,
-					),
-				});
+				);
 
-				let data: JinaGroundingResponse;
-				try {
-					const text = await response.text();
-					data = JSON.parse(text);
-				} catch (error) {
+				if (!data?.data) {
 					throw new ProviderError(
 						ErrorType.API_ERROR,
-						`Invalid JSON response: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
+						'Unexpected response: missing data from Jina Grounding',
 						this.name,
 					);
-				}
-
-				if (!response.ok || !data.data) {
-					switch (response.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Jina Grounding API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${response.statusText}`,
-								this.name,
-							);
-					}
 				}
 
 				// Format references into a readable string

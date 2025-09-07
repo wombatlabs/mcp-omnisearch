@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	BaseSearchParams,
 	SearchProvider,
@@ -107,7 +108,8 @@ export class PerplexityProvider implements SearchProvider {
 		const final_options = { ...default_options, ...options };
 
 		try {
-			const response = await fetch(
+			const data = await http_json<any>(
+				this.name,
 				`${config.ai_response.perplexity.base_url}/chat/completions`,
 				{
 					method: 'POST',
@@ -127,19 +129,11 @@ export class PerplexityProvider implements SearchProvider {
 						temperature: 0.2,
 						max_tokens: 1024,
 					}),
+					signal: AbortSignal.timeout(
+						config.ai_response.perplexity.timeout,
+					),
 				},
 			);
-
-			if (!response.ok) {
-				const error_data = await response.json();
-				throw new Error(
-					`Perplexity API error: ${
-						error_data.error?.message || response.statusText
-					}`,
-				);
-			}
-
-			const data = await response.json();
 
 			// Extract the full content from choices
 			if (!data.choices?.[0]?.message?.content) {
@@ -199,7 +193,8 @@ export class PerplexityProvider implements SearchProvider {
 		const final_options = { ...default_options, ...options };
 
 		try {
-			const response = await fetch(
+			const data = await http_json<any>(
+				this.name,
 				`${config.ai_response.perplexity.base_url}/chat/completions`,
 				{
 					method: 'POST',
@@ -227,19 +222,11 @@ export class PerplexityProvider implements SearchProvider {
 						presence_penalty: final_options.presence_penalty,
 						frequency_penalty: final_options.frequency_penalty,
 					}),
+					signal: AbortSignal.timeout(
+						config.ai_response.perplexity.timeout,
+					),
 				},
 			);
-
-			if (!response.ok) {
-				const error_data = await response.json();
-				throw new Error(
-					`Perplexity API error: ${
-						error_data.error?.message || response.statusText
-					}`,
-				);
-			}
-
-			const data = await response.json();
 			const answer = data.choices[0].message.content;
 			const citations = data.citations || [];
 

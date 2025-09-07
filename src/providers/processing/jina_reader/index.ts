@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -39,35 +40,22 @@ export class JinaReaderProvider implements ProcessingProvider {
 				this.name,
 			);
 
-			const headers: HeadersInit = {
-				Authorization: `Bearer ${api_key}`,
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-			};
-
-			const response = await fetch('https://r.jina.ai/', {
-				method: 'POST',
-				headers,
-				body: JSON.stringify({ url }),
-			});
-
-			if (!response.ok) {
-				if (response.status === 429) {
-					throw new ProviderError(
-						ErrorType.RATE_LIMIT,
-						'Rate limit exceeded',
-						this.name,
-					);
-				}
-
-				throw new ProviderError(
-					ErrorType.API_ERROR,
-					`API request failed with status ${response.status}`,
-					this.name,
-				);
-			}
-
-			const data = await response.json();
+			const data = await http_json<any>(
+				this.name,
+				'https://r.jina.ai/',
+				{
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${api_key}`,
+						Accept: 'application/json',
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ url }),
+					signal: AbortSignal.timeout(
+						config.processing.jina_reader.timeout ?? 30000,
+					),
+				},
+			);
 
 			if (!data.data) {
 				throw new ProviderError(
