@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -60,74 +61,31 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 						: 'Extract the main content, title, and author from this page. Summarize the key information.';
 
 				// Start the extraction
-				const extract_response = await fetch(
-					config.processing.firecrawl_extract.base_url,
-					{
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${api_key}`,
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
-							urls: [extract_url],
-							prompt: extraction_prompt,
-							showSources: true,
-							scrapeOptions: {
-								formats: ['markdown'],
-								onlyMainContent: true,
-								waitFor: extract_depth === 'advanced' ? 5000 : 2000,
-							},
-						}),
-						signal: AbortSignal.timeout(
-							config.processing.firecrawl_extract.timeout,
-						),
-					},
-				);
-
-				if (!extract_response.ok) {
-					// Handle error responses based on status codes
-					switch (extract_response.status) {
-						case 400:
-							throw new ProviderError(
-								ErrorType.INVALID_INPUT,
-								'Invalid request parameters',
-								this.name,
-							);
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							throw new ProviderError(
-								ErrorType.RATE_LIMIT,
-								'Rate limit exceeded',
-								this.name,
-							);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Firecrawl API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${extract_response.statusText}`,
-								this.name,
-							);
-					}
-				}
-
 				const extract_data =
-					(await extract_response.json()) as FirecrawlExtractResponse;
+					await http_json<FirecrawlExtractResponse>(
+						this.name,
+						config.processing.firecrawl_extract.base_url,
+						{
+							method: 'POST',
+							headers: {
+								Authorization: `Bearer ${api_key}`,
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({
+								urls: [extract_url],
+								prompt: extraction_prompt,
+								showSources: true,
+								scrapeOptions: {
+									formats: ['markdown'],
+									onlyMainContent: true,
+									waitFor: extract_depth === 'advanced' ? 5000 : 2000,
+								},
+							}),
+							signal: AbortSignal.timeout(
+								config.processing.firecrawl_extract.timeout,
+							),
+						},
+					);
 
 				// Check if there was an error in the response
 				if (!extract_data.success || extract_data.error) {
@@ -149,23 +107,21 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 					attempts++;
 					await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds between polls
 
-					const status_response = await fetch(
-						`${config.processing.firecrawl_extract.base_url}/${extract_id}`,
-						{
-							method: 'GET',
-							headers: {
-								Authorization: `Bearer ${api_key}`,
-							},
-							signal: AbortSignal.timeout(30000), // 30 second timeout for status checks
-						},
-					);
-
-					if (!status_response.ok) {
-						continue; // Skip this attempt if there's an error
+					let status_result: FirecrawlExtractStatusResponse;
+					try {
+						status_result =
+							await http_json<FirecrawlExtractStatusResponse>(
+								this.name,
+								`${config.processing.firecrawl_extract.base_url}/${extract_id}`,
+								{
+									method: 'GET',
+									headers: { Authorization: `Bearer ${api_key}` },
+									signal: AbortSignal.timeout(30000),
+								},
+							);
+					} catch {
+						continue; // skip this poll attempt on transient HTTP errors
 					}
-
-					const status_result =
-						(await status_response.json()) as FirecrawlExtractStatusResponse;
 
 					if (!status_result.success) {
 						throw new ProviderError(

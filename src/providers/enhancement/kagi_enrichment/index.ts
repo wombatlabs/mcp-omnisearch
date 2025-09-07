@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	EnhancementProvider,
 	EnhancementResult,
@@ -5,7 +6,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	handle_rate_limit,
 	retry_with_backoff,
 	sanitize_query,
 	validate_api_key,
@@ -39,8 +39,9 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 		const enrich_request = async () => {
 			try {
 				// Try both web and news endpoints
-				const results = await Promise.all([
-					fetch(
+				const [webData, newsData] = await Promise.all([
+					http_json<EnrichmentResponse & { message?: string }>(
+						this.name,
 						`https://kagi.com/api/v0/enrich/web?${new URLSearchParams(
 							{
 								q: sanitize_query(
@@ -60,7 +61,8 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 							),
 						},
 					),
-					fetch(
+					http_json<EnrichmentResponse & { message?: string }>(
+						this.name,
 						`https://kagi.com/api/v0/enrich/news?${new URLSearchParams(
 							{
 								q: sanitize_query(
@@ -82,90 +84,12 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 					),
 				]);
 
-				const [webResponse, newsResponse] = results;
-
-				// Parse and validate responses
-				let webData: EnrichmentResponse & { message?: string };
-				let newsData: EnrichmentResponse & { message?: string };
-
-				try {
-					const webText = await webResponse.text();
-					webData = JSON.parse(webText);
-				} catch (error) {
+				if (!webData?.data || !newsData?.data) {
 					throw new ProviderError(
 						ErrorType.API_ERROR,
-						`Invalid JSON response from web endpoint: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
+						'Unexpected response: missing data from enrichment endpoints',
 						this.name,
 					);
-				}
-
-				try {
-					const newsText = await newsResponse.text();
-					newsData = JSON.parse(newsText);
-				} catch (error) {
-					throw new ProviderError(
-						ErrorType.API_ERROR,
-						`Invalid JSON response from news endpoint: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
-						this.name,
-					);
-				}
-
-				if (!webResponse.ok || !webData.data) {
-					const error_message =
-						webData.message || webResponse.statusText;
-					switch (webResponse.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Kagi Enrichment API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error from web endpoint: ${error_message}`,
-								this.name,
-							);
-					}
-				}
-
-				if (!newsResponse.ok || !newsData.data) {
-					const error_message =
-						newsData.message || newsResponse.statusText;
-					switch (newsResponse.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Kagi Enrichment API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error from news endpoint: ${error_message}`,
-								this.name,
-							);
-					}
 				}
 
 				// Combine and filter results

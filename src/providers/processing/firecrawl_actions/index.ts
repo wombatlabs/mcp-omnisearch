@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -101,106 +102,63 @@ export class FirecrawlActionsProvider implements ProcessingProvider {
 							];
 
 				// Start the actions
-				const actions_response = await fetch(
-					config.processing.firecrawl_actions.base_url,
-					{
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${api_key}`,
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
-							url: actions_url,
-							formats: ['markdown', 'screenshot'], // Prefer markdown for LLM consumption and include screenshot
-							actions: actions.map((action) => {
-								// Convert our action format to Firecrawl's action format
-								switch (action.type) {
-									case 'wait':
-										return {
-											type: 'wait',
-											milliseconds: action.duration || 1000,
-											selector: action.selector,
-										};
-									case 'scroll':
-										return {
-											type: 'scroll',
-											// Firecrawl might use different parameters for scroll
-											// Adjust as needed based on their documentation
-										};
-									case 'click':
-										return {
-											type: 'click',
-											selector: action.selector,
-											x: action.x,
-											y: action.y,
-										};
-									case 'type':
-										return {
-											type: 'type',
-											selector: action.selector,
-											text: action.text || '',
-										};
-									case 'select':
-										return {
-											type: 'select',
-											selector: action.selector,
-											value: action.value || '',
-										};
-									default:
-										return action;
-								}
-							}),
-						}),
-						signal: AbortSignal.timeout(
-							config.processing.firecrawl_actions.timeout,
-						),
-					},
-				);
-
-				if (!actions_response.ok) {
-					// Handle error responses based on status codes
-					switch (actions_response.status) {
-						case 400:
-							throw new ProviderError(
-								ErrorType.INVALID_INPUT,
-								'Invalid request parameters',
-								this.name,
-							);
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							throw new ProviderError(
-								ErrorType.RATE_LIMIT,
-								'Rate limit exceeded',
-								this.name,
-							);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Firecrawl API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${actions_response.statusText}`,
-								this.name,
-							);
-					}
-				}
-
 				const actions_data =
-					(await actions_response.json()) as FirecrawlActionsResponse;
+					await http_json<FirecrawlActionsResponse>(
+						this.name,
+						config.processing.firecrawl_actions.base_url,
+						{
+							method: 'POST',
+							headers: {
+								Authorization: `Bearer ${api_key}`,
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({
+								url: actions_url,
+								formats: ['markdown', 'screenshot'],
+								actions: actions.map((action) => {
+									// Convert our action format to Firecrawl's action format
+									switch (action.type) {
+										case 'wait':
+											return {
+												type: 'wait',
+												milliseconds: action.duration || 1000,
+												selector: action.selector,
+											};
+										case 'scroll':
+											return {
+												type: 'scroll',
+												// Firecrawl might use different parameters for scroll
+												// Adjust as needed based on their documentation
+											};
+										case 'click':
+											return {
+												type: 'click',
+												selector: action.selector,
+												x: action.x,
+												y: action.y,
+											};
+										case 'type':
+											return {
+												type: 'type',
+												selector: action.selector,
+												text: action.text || '',
+											};
+										case 'select':
+											return {
+												type: 'select',
+												selector: action.selector,
+												value: action.value || '',
+											};
+										default:
+											return action;
+									}
+								}),
+							}),
+							signal: AbortSignal.timeout(
+								config.processing.firecrawl_actions.timeout,
+							),
+						},
+					);
 
 				// Check if there was an error in the response
 				if (!actions_data.success || actions_data.error) {

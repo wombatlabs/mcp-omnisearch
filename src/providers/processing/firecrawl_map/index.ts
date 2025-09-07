@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -46,7 +47,8 @@ export class FirecrawlMapProvider implements ProcessingProvider {
 
 			try {
 				// Start the map operation
-				const map_response = await fetch(
+				const map_data = await http_json<FirecrawlMapResponse>(
+					this.name,
 					config.processing.firecrawl_map.base_url,
 					{
 						method: 'POST',
@@ -56,61 +58,15 @@ export class FirecrawlMapProvider implements ProcessingProvider {
 						},
 						body: JSON.stringify({
 							url: map_url,
-							// Use advanced options if extract_depth is advanced
 							limit: extract_depth === 'advanced' ? 200 : 50,
-							ignoreSitemap: false, // Use sitemap for better coverage
-							includeSubdomains: false, // Only include URLs from the same domain
+							ignoreSitemap: false,
+							includeSubdomains: false,
 						}),
 						signal: AbortSignal.timeout(
 							config.processing.firecrawl_map.timeout,
 						),
 					},
 				);
-
-				if (!map_response.ok) {
-					// Handle error responses based on status codes
-					switch (map_response.status) {
-						case 400:
-							throw new ProviderError(
-								ErrorType.INVALID_INPUT,
-								'Invalid request parameters',
-								this.name,
-							);
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							throw new ProviderError(
-								ErrorType.RATE_LIMIT,
-								'Rate limit exceeded',
-								this.name,
-							);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Firecrawl API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${map_response.statusText}`,
-								this.name,
-							);
-					}
-				}
-
-				const map_data =
-					(await map_response.json()) as FirecrawlMapResponse;
 
 				// Check if there was an error in the response
 				if (!map_data.success || map_data.error) {
