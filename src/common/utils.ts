@@ -2,18 +2,24 @@
 
 import { ErrorType, ProviderError } from './types.js';
 
+const normalize_api_key = (raw: string): string => {
+    // Trim whitespace and strip a single pair of wrapping quotes if present
+    const trimmed = raw.trim();
+    return trimmed.replace(/^(['"])(.*)\1$/, '$2');
+};
+
 export const validate_api_key = (
-	key: string | undefined,
-	provider: string,
+    key: string | undefined,
+    provider: string,
 ): string => {
-	if (!key) {
-		throw new ProviderError(
-			ErrorType.INVALID_INPUT,
-			`API key not found for ${provider}`,
-			provider,
-		);
-	}
-	return key;
+    if (!key) {
+        throw new ProviderError(
+            ErrorType.INVALID_INPUT,
+            `API key not found for ${provider}`,
+            provider,
+        );
+    }
+    return normalize_api_key(key);
 };
 
 /**

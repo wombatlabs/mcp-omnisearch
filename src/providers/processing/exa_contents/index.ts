@@ -12,11 +12,13 @@ import { http_json } from '../../../common/http.js';
 import { config } from '../../../config/env.js';
 
 interface ExaContentsRequest {
-	ids: string[];
-	text?: boolean;
-	highlights?: boolean;
-	summary?: boolean;
-	livecrawl?: 'always' | 'fallback' | 'preferred';
+    // Exa now prefers 'urls'. 'ids' is deprecated but still supported.
+    urls?: string[];
+    ids?: string[];
+    text?: boolean;
+    highlights?: boolean;
+    summary?: boolean;
+    livecrawl?: 'always' | 'fallback' | 'preferred';
 }
 
 interface ExaContentResult {
@@ -39,49 +41,56 @@ export class ExaContentsProvider implements ProcessingProvider {
 	name = 'exa_contents';
 	description = 'Extract full content from Exa search result IDs';
 
-	async process_content(
-		ids: string | string[],
-		extract_depth: 'basic' | 'advanced' = 'basic',
-	): Promise<ProcessingResult> {
+    async process_content(
+        idsOrUrls: string | string[],
+        extract_depth: 'basic' | 'advanced' = 'basic',
+    ): Promise<ProcessingResult> {
 		const api_key = validate_api_key(
 			config.processing.exa_contents.api_key,
 			this.name,
 		);
 
-		const id_array = Array.isArray(ids) ? ids : [ids];
+        const items = Array.isArray(idsOrUrls) ? idsOrUrls : [idsOrUrls];
 
-		if (id_array.length === 0) {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				'At least one ID must be provided',
-				this.name,
-			);
-		}
+        if (items.length === 0) {
+            throw new ProviderError(
+                ErrorType.INVALID_INPUT,
+                'At least one ID must be provided',
+                this.name,
+            );
+        }
 
 		const process_request = async () => {
 			try {
-				const request_body: ExaContentsRequest = {
-					ids: id_array,
-					text: true,
-					highlights: extract_depth === 'advanced',
-					summary: extract_depth === 'advanced',
-					livecrawl:
-						extract_depth === 'advanced' ? 'preferred' : 'fallback',
-				};
+                // Use 'urls' if inputs look like URLs, otherwise fall back to 'ids'
+                const looksLikeUrl = (value: string) => {
+                    try { new URL(value); return true; } catch { return false; }
+                };
+                const allAreUrls = items.every(looksLikeUrl);
+
+                const request_body: ExaContentsRequest = {
+                    ...(allAreUrls ? { urls: items } : { ids: items }),
+                    text: true,
+                    highlights: extract_depth === 'advanced',
+                    summary: extract_depth === 'advanced',
+                    livecrawl:
+                        extract_depth === 'advanced' ? 'preferred' : 'fallback',
+                };
 
 
-				const data = await http_json<ExaContentsResponse>(
-					this.name,
-					`${config.processing.exa_contents.base_url}/contents`,
-					{
-						method: 'POST',
-						headers: {
-							'x-api-key': api_key,
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify(request_body),
-					},
-				);
+                const data = await http_json<ExaContentsResponse>(
+                    this.name,
+                    `${config.processing.exa_contents.base_url}/contents`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'x-api-key': api_key,
+                            Authorization: `Bearer ${api_key}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(request_body),
+                    },
+                );
 
 				// Combine all content
 				let combined_content = '';
