@@ -54,9 +54,10 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 
 			try {
 				// Define extraction instructions based on extract_depth
-				const extraction_prompt = extract_depth === 'advanced'
-					? 'Extract all relevant information from this page including: title, author, date published, main content, categories or tags, related links, and any structured data like product information, pricing, or specifications. Format the data in a well-structured way.'
-					: 'Extract the main content, title, and author from this page. Summarize the key information.';
+				const extraction_prompt =
+					extract_depth === 'advanced'
+						? 'Extract all relevant information from this page including: title, author, date published, main content, categories or tags, related links, and any structured data like product information, pricing, or specifications. Format the data in a well-structured way.'
+						: 'Extract the main content, title, and author from this page. Summarize the key information.';
 
 				// Start the extraction
 				const extract_response = await fetch(
@@ -64,7 +65,7 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 					{
 						method: 'POST',
 						headers: {
-							'Authorization': `Bearer ${api_key}`,
+							Authorization: `Bearer ${api_key}`,
 							'Content-Type': 'application/json',
 						},
 						body: JSON.stringify({
@@ -125,7 +126,8 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 					}
 				}
 
-				const extract_data = (await extract_response.json()) as FirecrawlExtractResponse;
+				const extract_data =
+					(await extract_response.json()) as FirecrawlExtractResponse;
 
 				// Check if there was an error in the response
 				if (!extract_data.success || extract_data.error) {
@@ -152,7 +154,7 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 						{
 							method: 'GET',
 							headers: {
-								'Authorization': `Bearer ${api_key}`,
+								Authorization: `Bearer ${api_key}`,
 							},
 							signal: AbortSignal.timeout(30000), // 30 second timeout for status checks
 						},
@@ -162,7 +164,8 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 						continue; // Skip this attempt if there's an error
 					}
 
-					const status_result = (await status_response.json()) as FirecrawlExtractStatusResponse;
+					const status_result =
+						(await status_response.json()) as FirecrawlExtractStatusResponse;
 
 					if (!status_result.success) {
 						throw new ProviderError(
@@ -172,7 +175,10 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 						);
 					}
 
-					if (status_result.status === 'completed' && status_result.data) {
+					if (
+						status_result.status === 'completed' &&
+						status_result.data
+					) {
 						status_data = status_result;
 						break;
 					} else if (status_result.status === 'error') {
@@ -207,7 +213,9 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 						value.forEach((item, index) => {
 							if (typeof item === 'object') {
 								formatted_content += `### Item ${index + 1}\n\n`;
-								for (const [itemKey, itemValue] of Object.entries(item)) {
+								for (const [itemKey, itemValue] of Object.entries(
+									item,
+								)) {
 									formatted_content += `- **${itemKey}**: ${itemValue}\n`;
 								}
 								formatted_content += '\n';
@@ -226,13 +234,17 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 				}
 
 				// Create a single raw_content entry
-				const raw_contents = [{
-					url: extract_url,
-					content: formatted_content,
-				}];
+				const raw_contents = [
+					{
+						url: extract_url,
+						content: formatted_content,
+					},
+				];
 
 				// Get title if available
-				const title = status_data.data.title || `Extracted Data from ${extract_url}`;
+				const title =
+					status_data.data.title ||
+					`Extracted Data from ${extract_url}`;
 
 				// Count words in the formatted content
 				const word_count = formatted_content

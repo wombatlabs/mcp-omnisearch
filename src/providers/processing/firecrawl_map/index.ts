@@ -51,7 +51,7 @@ export class FirecrawlMapProvider implements ProcessingProvider {
 					{
 						method: 'POST',
 						headers: {
-							'Authorization': `Bearer ${api_key}`,
+							Authorization: `Bearer ${api_key}`,
 							'Content-Type': 'application/json',
 						},
 						body: JSON.stringify({
@@ -109,7 +109,8 @@ export class FirecrawlMapProvider implements ProcessingProvider {
 					}
 				}
 
-				const map_data = (await map_response.json()) as FirecrawlMapResponse;
+				const map_data =
+					(await map_response.json()) as FirecrawlMapResponse;
 
 				// Check if there was an error in the response
 				if (!map_data.success || map_data.error) {
@@ -130,15 +131,18 @@ export class FirecrawlMapProvider implements ProcessingProvider {
 				}
 
 				// Format the links as a list with descriptions
-				const formatted_content = `# Site Map for ${map_url}\n\n` +
+				const formatted_content =
+					`# Site Map for ${map_url}\n\n` +
 					`Found ${map_data.links.length} URLs:\n\n` +
 					map_data.links.map((url) => `- ${url}`).join('\n');
 
 				// Create a single raw_content entry with all URLs
-				const raw_contents = [{
-					url: map_url,
-					content: formatted_content,
-				}];
+				const raw_contents = [
+					{
+						url: map_url,
+						content: formatted_content,
+					},
+				];
 
 				return {
 					content: formatted_content,

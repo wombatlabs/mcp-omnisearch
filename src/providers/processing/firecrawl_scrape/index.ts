@@ -155,7 +155,11 @@ export class FirecrawlScrapeProvider implements ProcessingProvider {
 							}
 
 							// Check if content was successfully extracted
-							if (!data.data.markdown && !data.data.html && !data.data.rawHtml) {
+							if (
+								!data.data.markdown &&
+								!data.data.html &&
+								!data.data.rawHtml
+							) {
 								throw new ProviderError(
 									ErrorType.PROVIDER_ERROR,
 									'No content extracted from URL',
@@ -165,7 +169,10 @@ export class FirecrawlScrapeProvider implements ProcessingProvider {
 
 							// Prefer markdown, fallback to HTML, then rawHtml
 							const content =
-								data.data.markdown || data.data.html || data.data.rawHtml || '';
+								data.data.markdown ||
+								data.data.html ||
+								data.data.rawHtml ||
+								'';
 
 							return {
 								url: single_url,

@@ -51,13 +51,11 @@ graph TD
 ## Key Components
 
 1. **Unified Server Interface**
-
    - Single MCP server exposing multiple search tools
    - Common parameter structure where possible
    - Provider-specific parameters where needed
 
 2. **Tool Registry**
-
    - Registers all search providers with clear, detailed descriptions
    - Highlights strengths and best-use cases for each provider
    - Handles provider names with underscores by splitting from right
@@ -67,7 +65,6 @@ graph TD
      - action: "search"
 
 3. **Provider Implementation**
-
    - Each search provider implemented as a separate module
    - Shared utilities for common functionality
    - Consistent error handling across providers
@@ -120,16 +117,16 @@ Content Processing Tools:
   multiple URLs. Efficiently converts web content into clean,
   processable text with configurable extraction depth and optional
   image extraction."
-- **Firecrawl Scrape**: "Extract clean, LLM-ready data from single URLs with
-  enhanced formatting options."
-- **Firecrawl Crawl**: "Deep crawling of all accessible subpages on a website
-  with configurable depth limits."
-- **Firecrawl Map**: "Fast URL collection from websites for comprehensive site
-  mapping."
-- **Firecrawl Extract**: "Structured data extraction with AI using natural
-  language prompts."
-- **Firecrawl Actions**: "Support for page interactions (clicking, scrolling,
-  etc.) before extraction for dynamic content."
+- **Firecrawl Scrape**: "Extract clean, LLM-ready data from single
+  URLs with enhanced formatting options."
+- **Firecrawl Crawl**: "Deep crawling of all accessible subpages on a
+  website with configurable depth limits."
+- **Firecrawl Map**: "Fast URL collection from websites for
+  comprehensive site mapping."
+- **Firecrawl Extract**: "Structured data extraction with AI using
+  natural language prompts."
+- **Firecrawl Actions**: "Support for page interactions (clicking,
+  scrolling, etc.) before extraction for dynamic content."
 
 Enhancement Tools:
 
@@ -143,13 +140,11 @@ Enhancement Tools:
 ## Implementation Plan
 
 1. **Phase 1: Core Structure**
-
    - Set up the unified MCP server framework
    - Create modular structure for providers
    - Implement configuration management
 
 2. **Phase 2: Provider Integration**
-
    - Integrate each search provider
    - Develop comprehensive tool descriptions
    - Implement error handling and fallbacks
@@ -228,27 +223,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 ## Best Practices
 
 1. **Error Handling**
-
    - Implement consistent error handling across all providers
    - Provide clear error messages that help identify the source of
      issues
    - Include fallback mechanisms where appropriate
 
 2. **Parameter Standardization**
-
    - Use consistent parameter names across providers
    - Standardize common parameters (e.g., always use `query` instead
      of mixing terms)
    - Document any provider-specific parameters clearly
 
 3. **Logging and Monitoring**
-
    - Implement comprehensive logging for debugging
    - Track usage patterns and performance metrics
    - Monitor API rate limits and quotas
 
 4. **Code Organization**
-
    - Keep provider implementations isolated
    - Share common utilities through the common/ directory
    - Maintain consistent coding style across all modules
@@ -273,7 +264,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 All providers have been successfully implemented:
 
 1. **Search Providers**
-
    - [x] Tavily Search ✅
      - ✅ Implement search API call with proper error handling
      - ✅ Add rate limiting with retry logic
@@ -292,7 +282,6 @@ All providers have been successfully implemented:
      - ✅ Successfully tested with real queries
 
 2. **AI Response Providers**
-
    - [x] Perplexity AI ✅
      - ✅ Implement chat completion API with proper error handling
      - ✅ Add context handling with system messages
@@ -310,7 +299,6 @@ All providers have been successfully implemented:
        names containing underscores
 
 3. **Content Processing**
-
    - [x] Jina AI Reader ✅
      - ✅ Implement URL processing with proper error handling
      - ✅ Add support for both JSON and text response formats
@@ -330,7 +318,8 @@ All providers have been successfully implemented:
    - [x] Firecrawl Tools ✅
      - [x] Scrape ✅
        - ✅ Implement URL scraping with proper error handling
-       - ✅ Add support for different output formats (markdown, text, HTML)
+       - ✅ Add support for different output formats (markdown, text,
+         HTML)
        - ✅ Add retry logic with backoff
        - ✅ Updated to use Bearer token authentication
        - ✅ Successfully tested with example.com
@@ -356,7 +345,8 @@ All providers have been successfully implemented:
        - ✅ Updated to use Bearer token authentication
        - ✅ Successfully tested with example.com
      - [x] Actions ✅
-       - ✅ Implement page interaction capabilities (click, scroll, input)
+       - ✅ Implement page interaction capabilities (click, scroll,
+         input)
        - ✅ Add support for waiting between actions
        - ✅ Add comprehensive error handling
        - ✅ Implement proper timeout handling
@@ -364,7 +354,6 @@ All providers have been successfully implemented:
        - ✅ Successfully tested with news.ycombinator.com
 
 4. **Enhancement Tools**
-
    - [x] Kagi Enrichment ✅
      - ✅ Implement content enrichment with Teclis and TinyGem indexes
      - ✅ Add specialized index support for web and news content
@@ -383,10 +372,8 @@ All providers have been successfully implemented:
 Systematic testing of all providers with real-world queries:
 
 1. **Search Providers**
-
    - ✅ Tavily Search: Successfully tested with Rust error handling
      query
-
      - Properly implements domain filtering (docs.rs, rust-lang.org)
      - Returns relevant results with confidence scores
      - Comprehensive error handling and rate limiting
@@ -394,7 +381,6 @@ Systematic testing of all providers with real-world queries:
 
    - ✅ Brave Search: Successfully tested with TypeScript
      documentation query
-
      - Domain filtering works using site: syntax
      - Returns clean, focused technical documentation
      - Proper timeout handling and JSON validation
@@ -409,10 +395,8 @@ Systematic testing of all providers with real-world queries:
        management
 
 2. **AI Response Providers**
-
    - ✅ Perplexity Search: Successfully tested with complex technical
      comparison
-
      - Generated comprehensive analysis of Rust vs C++ memory safety
      - Demonstrated strong synthesis across multiple sources
      - Included academic citations
@@ -427,10 +411,8 @@ Systematic testing of all providers with real-world queries:
        handling
 
 3. **Content Processing**
-
    - ✅ Jina AI Reader: Successfully tested with Tokio Mutex
      documentation
-
      - Cleanly extracted technical content while preserving code
        blocks
      - Maintained document structure and formatting
@@ -451,19 +433,20 @@ Systematic testing of all providers with real-world queries:
      - Code verified: Implements proper error handling, timeout
        management
    - Firecrawl Tools: Successfully implemented and tested
-     - ✅ All providers implemented following the ProcessingProvider interface pattern
+     - ✅ All providers implemented following the ProcessingProvider
+       interface pattern
      - ✅ Comprehensive error handling and retry logic implemented
      - ✅ Support for various output formats and configurations added
      - ✅ Integrated with the existing processing provider registry
      - ✅ Updated to use Bearer token authentication
-     - ✅ Updated request parameters and response handling to match API documentation
-     - ✅ All providers successfully tested with example.com and news.ycombinator.com
+     - ✅ Updated request parameters and response handling to match
+       API documentation
+     - ✅ All providers successfully tested with example.com and
+       news.ycombinator.com
 
 4. **Enhancement Tools**
-
    - ✅ Kagi Enrichment: Successfully tested with AI/software
      development content
-
      - Retrieved relevant content from web and news sources
      - Properly filtered results by topic relevance
      - Included source tracking with titles and URLs
@@ -491,7 +474,7 @@ Systematic testing of all providers with real-world queries:
    - ✅ AND/OR/NOT (boolean operators)
 
 2. **Provider-Specific Implementation** ✅
-   
+
    a. Brave Search ✅
    - ✅ Implemented native operator support in query string
    - ✅ Successfully tested with site:, filetype:, intitle: operators
@@ -513,6 +496,7 @@ Systematic testing of all providers with real-world queries:
 3. **Implementation Strategy** ✅
 
    a. Query Parser Layer ✅
+
    ```mermaid
    graph TD
        A[User Query] --> B[Operator Parser]
@@ -548,7 +532,8 @@ Next Steps:
 3. Update documentation with test results
 4. Implement provider-specific optimizations based on test findings
 5. Consider adding streaming support for Perplexity responses
-6. Expand testing of Firecrawl tools with more complex websites and use cases
+6. Expand testing of Firecrawl tools with more complex websites and
+   use cases
 7. Implement search operator support across all providers
 
 ### Development Order

@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -53,7 +54,8 @@ export class TavilyExtractProvider implements ProcessingProvider {
 			);
 
 			try {
-				const response = await fetch(
+				const data = await http_json<TavilyExtractResponse>(
+					this.name,
 					`${config.processing.tavily_extract.base_url}/extract`,
 					{
 						method: 'POST',
@@ -71,50 +73,6 @@ export class TavilyExtractProvider implements ProcessingProvider {
 						),
 					},
 				);
-
-				if (!response.ok) {
-					// Handle error responses based on status codes
-					switch (response.status) {
-						case 400:
-							throw new ProviderError(
-								ErrorType.INVALID_INPUT,
-								'Invalid request parameters',
-								this.name,
-							);
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							throw new ProviderError(
-								ErrorType.RATE_LIMIT,
-								'Rate limit exceeded',
-								this.name,
-							);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Tavily Extract API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${response.statusText}`,
-								this.name,
-							);
-					}
-				}
-
-				const data = (await response.json()) as TavilyExtractResponse;
 
 				// Check if there are any results
 				if (data.results.length === 0) {

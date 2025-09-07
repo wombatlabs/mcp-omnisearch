@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -5,7 +6,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	handle_rate_limit,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -37,59 +37,28 @@ export class KagiSummarizerProvider implements ProcessingProvider {
 
 		const summarize_request = async () => {
 			try {
-				const response = await fetch(
-					config.processing.kagi_summarizer.base_url,
-					{
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							Authorization: `Bot ${api_key}`,
-						},
-						body: JSON.stringify({ url }),
-						signal: AbortSignal.timeout(
-							config.processing.kagi_summarizer.timeout,
-						),
+				const data = await http_json<
+					KagiSummarizerResponse & { message?: string }
+				>(this.name, config.processing.kagi_summarizer.base_url, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bot ${api_key}`,
 					},
-				);
+					body: JSON.stringify({ url }),
+					signal: AbortSignal.timeout(
+						config.processing.kagi_summarizer.timeout,
+					),
+				});
 
-				let data: KagiSummarizerResponse & { message?: string };
-				try {
-					const text = await response.text();
-					data = JSON.parse(text);
-				} catch (error) {
+				if (!data?.data?.output) {
+					const error_message =
+						(data as any)?.message || 'Empty output';
 					throw new ProviderError(
 						ErrorType.API_ERROR,
-						`Invalid JSON response: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
+						`Unexpected error: ${error_message}`,
 						this.name,
 					);
-				}
-
-				if (!response.ok || !data.data?.output) {
-					const error_message = data.message || response.statusText;
-					switch (response.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Kagi Summarizer API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${error_message}`,
-								this.name,
-							);
-					}
 				}
 
 				return {
