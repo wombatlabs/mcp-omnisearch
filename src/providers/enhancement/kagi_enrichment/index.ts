@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	EnhancementProvider,
 	EnhancementResult,
@@ -5,7 +6,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	handle_rate_limit,
 	retry_with_backoff,
 	sanitize_query,
 	validate_api_key,
@@ -39,12 +39,17 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 		const enrich_request = async () => {
 			try {
 				// Try both web and news endpoints
-				const results = await Promise.all([
-					fetch(
-						`https://kagi.com/api/v0/enrich/web?${new URLSearchParams({
-							q: sanitize_query('artificial intelligence software development'),
-							limit: '5',
-						})}`,
+				const [webData, newsData] = await Promise.all([
+					http_json<EnrichmentResponse & { message?: string }>(
+						this.name,
+						`https://kagi.com/api/v0/enrich/web?${new URLSearchParams(
+							{
+								q: sanitize_query(
+									'artificial intelligence software development',
+								),
+								limit: '5',
+							},
+						)}`,
 						{
 							method: 'GET',
 							headers: {
@@ -56,11 +61,16 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 							),
 						},
 					),
-					fetch(
-						`https://kagi.com/api/v0/enrich/news?${new URLSearchParams({
-							q: sanitize_query('artificial intelligence code generation testing'),
-							limit: '5',
-						})}`,
+					http_json<EnrichmentResponse & { message?: string }>(
+						this.name,
+						`https://kagi.com/api/v0/enrich/news?${new URLSearchParams(
+							{
+								q: sanitize_query(
+									'artificial intelligence code generation testing',
+								),
+								limit: '5',
+							},
+						)}`,
 						{
 							method: 'GET',
 							headers: {
@@ -74,114 +84,40 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 					),
 				]);
 
-				const [webResponse, newsResponse] = results;
-
-				// Parse and validate responses
-				let webData: EnrichmentResponse & { message?: string };
-				let newsData: EnrichmentResponse & { message?: string };
-
-				try {
-					const webText = await webResponse.text();
-					webData = JSON.parse(webText);
-				} catch (error) {
+				if (!webData?.data || !newsData?.data) {
 					throw new ProviderError(
 						ErrorType.API_ERROR,
-						`Invalid JSON response from web endpoint: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
+						'Unexpected response: missing data from enrichment endpoints',
 						this.name,
 					);
-				}
-
-				try {
-					const newsText = await newsResponse.text();
-					newsData = JSON.parse(newsText);
-				} catch (error) {
-					throw new ProviderError(
-						ErrorType.API_ERROR,
-						`Invalid JSON response from news endpoint: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
-						this.name,
-					);
-				}
-
-				if (!webResponse.ok || !webData.data) {
-					const error_message = webData.message || webResponse.statusText;
-					switch (webResponse.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Kagi Enrichment API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error from web endpoint: ${error_message}`,
-								this.name,
-							);
-					}
-				}
-
-				if (!newsResponse.ok || !newsData.data) {
-					const error_message = newsData.message || newsResponse.statusText;
-					switch (newsResponse.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Kagi Enrichment API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error from news endpoint: ${error_message}`,
-								this.name,
-							);
-					}
 				}
 
 				// Combine and filter results
-				const allData = [...webData.data, ...newsData.data]
-					.filter(result => 
+				const allData = [...webData.data, ...newsData.data].filter(
+					(result) =>
 						// Filter for results about software/development/AI
 						result.snippet?.toLowerCase().includes('software') ||
 						result.snippet?.toLowerCase().includes('develop') ||
 						result.snippet?.toLowerCase().includes('programming') ||
 						result.snippet?.toLowerCase().includes('code') ||
-						result.snippet?.toLowerCase().includes('artificial intelligence') ||
-						result.snippet?.toLowerCase().includes('ai')
-					);
+						result.snippet
+							?.toLowerCase()
+							.includes('artificial intelligence') ||
+						result.snippet?.toLowerCase().includes('ai'),
+				);
 
 				// Clean and combine snippets
 				const enhanced_content = allData
 					.map((result) => result.snippet)
 					.filter(Boolean)
-					.map(snippet => 
+					.map((snippet) =>
 						// Fix HTML entities
 						snippet
 							.replace(/&#39;/g, "'")
 							.replace(/&quot;/g, '"')
 							.replace(/&amp;/g, '&')
 							.replace(/&lt;/g, '<')
-							.replace(/&gt;/g, '>')
+							.replace(/&gt;/g, '>'),
 					)
 					.join('\n\n');
 

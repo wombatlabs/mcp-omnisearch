@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	BaseSearchParams,
 	SearchProvider,
@@ -91,7 +92,8 @@ export class KagiFastGPTProvider implements SearchProvider {
 		const final_options = { ...default_options, ...options };
 
 		try {
-			const response = await fetch(
+			return await http_json<KagiFastGPTResponse>(
+				this.name,
 				'https://kagi.com/api/v0/fastgpt',
 				{
 					method: 'POST',
@@ -104,19 +106,11 @@ export class KagiFastGPTProvider implements SearchProvider {
 						cache: final_options.cache,
 						web_search: final_options.web_search,
 					}),
+					signal: AbortSignal.timeout(
+						config.ai_response.kagi_fastgpt.timeout,
+					),
 				},
 			);
-
-			if (!response.ok) {
-				const error_data = await response.json();
-				throw new Error(
-					`Kagi FastGPT API error: ${
-						error_data.error || response.statusText
-					}`,
-				);
-			}
-
-			return await response.json();
 		} catch (error: unknown) {
 			const error_message =
 				error instanceof Error ? error.message : String(error);

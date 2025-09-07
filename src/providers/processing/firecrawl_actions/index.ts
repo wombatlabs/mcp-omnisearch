@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -78,123 +79,86 @@ export class FirecrawlActionsProvider implements ProcessingProvider {
 				// Define actions based on extract_depth
 				// For basic, we'll just scroll down once to load more content
 				// For advanced, we'll perform more complex interactions
-				const actions: Action[] = extract_depth === 'advanced'
-					? [
-							{ type: 'wait', duration: 2000 }, // Wait for initial page load
-							{ type: 'scroll', duration: 1000 }, // Scroll down
-							{ type: 'wait', duration: 1000 }, // Wait for content to load
-							{ type: 'scroll', duration: 1000 }, // Scroll down more
-							{ type: 'wait', duration: 1000 }, // Wait for content to load
-							// Click on "Read more" or "Show more" buttons if they exist
-							{ type: 'click', selector: 'button:contains("Read more"), button:contains("Show more"), a:contains("Read more"), a:contains("Show more")' },
-							{ type: 'wait', duration: 2000 }, // Wait for content to expand
-					  ]
-					: [
-							{ type: 'wait', duration: 2000 }, // Wait for initial page load
-							{ type: 'scroll', duration: 1000 }, // Scroll down once
-							{ type: 'wait', duration: 1000 }, // Wait for content to load
-					  ];
+				const actions: Action[] =
+					extract_depth === 'advanced'
+						? [
+								{ type: 'wait', duration: 2000 }, // Wait for initial page load
+								{ type: 'scroll', duration: 1000 }, // Scroll down
+								{ type: 'wait', duration: 1000 }, // Wait for content to load
+								{ type: 'scroll', duration: 1000 }, // Scroll down more
+								{ type: 'wait', duration: 1000 }, // Wait for content to load
+								// Click on "Read more" or "Show more" buttons if they exist
+								{
+									type: 'click',
+									selector:
+										'button:contains("Read more"), button:contains("Show more"), a:contains("Read more"), a:contains("Show more")',
+								},
+								{ type: 'wait', duration: 2000 }, // Wait for content to expand
+							]
+						: [
+								{ type: 'wait', duration: 2000 }, // Wait for initial page load
+								{ type: 'scroll', duration: 1000 }, // Scroll down once
+								{ type: 'wait', duration: 1000 }, // Wait for content to load
+							];
 
 				// Start the actions
-				const actions_response = await fetch(
-					config.processing.firecrawl_actions.base_url,
-					{
-						method: 'POST',
-						headers: {
-							'Authorization': `Bearer ${api_key}`,
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
-							url: actions_url,
-							formats: ['markdown', 'screenshot'], // Prefer markdown for LLM consumption and include screenshot
-							actions: actions.map(action => {
-								// Convert our action format to Firecrawl's action format
-								switch (action.type) {
-									case 'wait':
-										return {
-											type: 'wait',
-											milliseconds: action.duration || 1000,
-											selector: action.selector,
-										};
-									case 'scroll':
-										return {
-											type: 'scroll',
-											// Firecrawl might use different parameters for scroll
-											// Adjust as needed based on their documentation
-										};
-									case 'click':
-										return {
-											type: 'click',
-											selector: action.selector,
-											x: action.x,
-											y: action.y,
-										};
-									case 'type':
-										return {
-											type: 'type',
-											selector: action.selector,
-											text: action.text || '',
-										};
-									case 'select':
-										return {
-											type: 'select',
-											selector: action.selector,
-											value: action.value || '',
-										};
-									default:
-										return action;
-								}
+				const actions_data =
+					await http_json<FirecrawlActionsResponse>(
+						this.name,
+						config.processing.firecrawl_actions.base_url,
+						{
+							method: 'POST',
+							headers: {
+								Authorization: `Bearer ${api_key}`,
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({
+								url: actions_url,
+								formats: ['markdown', 'screenshot'],
+								actions: actions.map((action) => {
+									// Convert our action format to Firecrawl's action format
+									switch (action.type) {
+										case 'wait':
+											return {
+												type: 'wait',
+												milliseconds: action.duration || 1000,
+												selector: action.selector,
+											};
+										case 'scroll':
+											return {
+												type: 'scroll',
+												// Firecrawl might use different parameters for scroll
+												// Adjust as needed based on their documentation
+											};
+										case 'click':
+											return {
+												type: 'click',
+												selector: action.selector,
+												x: action.x,
+												y: action.y,
+											};
+										case 'type':
+											return {
+												type: 'type',
+												selector: action.selector,
+												text: action.text || '',
+											};
+										case 'select':
+											return {
+												type: 'select',
+												selector: action.selector,
+												value: action.value || '',
+											};
+										default:
+											return action;
+									}
+								}),
 							}),
-						}),
-						signal: AbortSignal.timeout(
-							config.processing.firecrawl_actions.timeout,
-						),
-					},
-				);
-
-				if (!actions_response.ok) {
-					// Handle error responses based on status codes
-					switch (actions_response.status) {
-						case 400:
-							throw new ProviderError(
-								ErrorType.INVALID_INPUT,
-								'Invalid request parameters',
-								this.name,
-							);
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							throw new ProviderError(
-								ErrorType.RATE_LIMIT,
-								'Rate limit exceeded',
-								this.name,
-							);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Firecrawl API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${actions_response.statusText}`,
-								this.name,
-							);
-					}
-				}
-
-				const actions_data = (await actions_response.json()) as FirecrawlActionsResponse;
+							signal: AbortSignal.timeout(
+								config.processing.firecrawl_actions.timeout,
+							),
+						},
+					);
 
 				// Check if there was an error in the response
 				if (!actions_data.success || actions_data.error) {
@@ -215,7 +179,11 @@ export class FirecrawlActionsProvider implements ProcessingProvider {
 				}
 
 				// Check if we have content
-				if (!actions_data.data.markdown && !actions_data.data.html && !actions_data.data.rawHtml) {
+				if (
+					!actions_data.data.markdown &&
+					!actions_data.data.html &&
+					!actions_data.data.rawHtml
+				) {
 					throw new ProviderError(
 						ErrorType.PROVIDER_ERROR,
 						'No content extracted after performing actions',
@@ -224,35 +192,44 @@ export class FirecrawlActionsProvider implements ProcessingProvider {
 				}
 
 				// Prefer markdown, fallback to HTML, then rawHtml
-				const content = actions_data.data.markdown || actions_data.data.html || actions_data.data.rawHtml || '';
+				const content =
+					actions_data.data.markdown ||
+					actions_data.data.html ||
+					actions_data.data.rawHtml ||
+					'';
 
 				// Add information about the actions performed
-				const actions_description = `# Content from ${actions_url} after interactions\n\n` +
+				const actions_description =
+					`# Content from ${actions_url} after interactions\n\n` +
 					`The following actions were performed before extraction:\n\n` +
-					actions.map((action, index) => {
-						switch (action.type) {
-							case 'click':
-								return `${index + 1}. Click on ${action.selector || `coordinates (${action.x}, ${action.y})`}`;
-							case 'type':
-								return `${index + 1}. Type "${action.text}" ${action.selector ? `into ${action.selector}` : ''}`;
-							case 'scroll':
-								return `${index + 1}. Scroll ${action.duration ? `for ${action.duration}ms` : ''}`;
-							case 'wait':
-								return `${index + 1}. Wait ${action.duration ? `for ${action.duration}ms` : ''}`;
-							case 'select':
-								return `${index + 1}. Select "${action.value}" from ${action.selector}`;
-							default:
-								return `${index + 1}. Perform ${action.type} action`;
-						}
-					}).join('\n') +
+					actions
+						.map((action, index) => {
+							switch (action.type) {
+								case 'click':
+									return `${index + 1}. Click on ${action.selector || `coordinates (${action.x}, ${action.y})`}`;
+								case 'type':
+									return `${index + 1}. Type "${action.text}" ${action.selector ? `into ${action.selector}` : ''}`;
+								case 'scroll':
+									return `${index + 1}. Scroll ${action.duration ? `for ${action.duration}ms` : ''}`;
+								case 'wait':
+									return `${index + 1}. Wait ${action.duration ? `for ${action.duration}ms` : ''}`;
+								case 'select':
+									return `${index + 1}. Select "${action.value}" from ${action.selector}`;
+								default:
+									return `${index + 1}. Perform ${action.type} action`;
+							}
+						})
+						.join('\n') +
 					'\n\n---\n\n' +
 					content;
 
 				// Create a single raw_content entry
-				const raw_contents = [{
-					url: actions_url,
-					content: actions_description,
-				}];
+				const raw_contents = [
+					{
+						url: actions_url,
+						content: actions_description,
+					},
+				];
 
 				// Calculate word count
 				const word_count = actions_description

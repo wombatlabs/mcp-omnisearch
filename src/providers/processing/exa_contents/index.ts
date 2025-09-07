@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -5,14 +6,15 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	handle_rate_limit,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
 import { config } from '../../../config/env.js';
 
 interface ExaContentsRequest {
-	ids: string[];
+	// Exa now prefers 'urls'. 'ids' is deprecated but still supported.
+	urls?: string[];
+	ids?: string[];
 	text?: boolean;
 	highlights?: boolean;
 	summary?: boolean;
@@ -40,7 +42,7 @@ export class ExaContentsProvider implements ProcessingProvider {
 	description = 'Extract full content from Exa search result IDs';
 
 	async process_content(
-		ids: string | string[],
+		idsOrUrls: string | string[],
 		extract_depth: 'basic' | 'advanced' = 'basic',
 	): Promise<ProcessingResult> {
 		const api_key = validate_api_key(
@@ -48,9 +50,9 @@ export class ExaContentsProvider implements ProcessingProvider {
 			this.name,
 		);
 
-		const id_array = Array.isArray(ids) ? ids : [ids];
+		const items = Array.isArray(idsOrUrls) ? idsOrUrls : [idsOrUrls];
 
-		if (id_array.length === 0) {
+		if (items.length === 0) {
 			throw new ProviderError(
 				ErrorType.INVALID_INPUT,
 				'At least one ID must be provided',
@@ -60,8 +62,19 @@ export class ExaContentsProvider implements ProcessingProvider {
 
 		const process_request = async () => {
 			try {
+				// Use 'urls' if inputs look like URLs, otherwise fall back to 'ids'
+				const looksLikeUrl = (value: string) => {
+					try {
+						new URL(value);
+						return true;
+					} catch {
+						return false;
+					}
+				};
+				const allAreUrls = items.every(looksLikeUrl);
+
 				const request_body: ExaContentsRequest = {
-					ids: id_array,
+					...(allAreUrls ? { urls: items } : { ids: items }),
 					text: true,
 					highlights: extract_depth === 'advanced',
 					summary: extract_depth === 'advanced',
@@ -69,56 +82,19 @@ export class ExaContentsProvider implements ProcessingProvider {
 						extract_depth === 'advanced' ? 'preferred' : 'fallback',
 				};
 
-				const response = await fetch(
+				const data = await http_json<ExaContentsResponse>(
+					this.name,
 					`${config.processing.exa_contents.base_url}/contents`,
 					{
 						method: 'POST',
 						headers: {
 							'x-api-key': api_key,
+							Authorization: `Bearer ${api_key}`,
 							'Content-Type': 'application/json',
 						},
 						body: JSON.stringify(request_body),
 					},
 				);
-
-				if (!response.ok) {
-					switch (response.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-							throw new ProviderError(
-								ErrorType.RATE_LIMIT,
-								'Rate limit exceeded',
-								this.name,
-							);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Exa API internal error',
-								this.name,
-							);
-						default:
-							const error_text = await response.text();
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${error_text}`,
-								this.name,
-							);
-					}
-				}
-
-				const data = (await response.json()) as ExaContentsResponse;
 
 				// Combine all content
 				let combined_content = '';

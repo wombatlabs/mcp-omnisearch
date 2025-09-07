@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -71,21 +72,21 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 
 			try {
 				// Start the crawl
-				const crawl_response = await fetch(
+				const crawl_data = await http_json<FirecrawlCrawlResponse>(
+					this.name,
 					config.processing.firecrawl_crawl.base_url,
 					{
 						method: 'POST',
 						headers: {
-							'Authorization': `Bearer ${api_key}`,
+							Authorization: `Bearer ${api_key}`,
 							'Content-Type': 'application/json',
 						},
 						body: JSON.stringify({
 							url: crawl_url,
 							scrapeOptions: {
-								formats: ['markdown'], // Prefer markdown for LLM consumption
+								formats: ['markdown'],
 								onlyMainContent: true,
 							},
-							// Use advanced options if extract_depth is advanced
 							maxDepth: extract_depth === 'advanced' ? 3 : 1,
 							limit: extract_depth === 'advanced' ? 50 : 20,
 						}),
@@ -94,50 +95,6 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 						),
 					},
 				);
-
-				if (!crawl_response.ok) {
-					// Handle error responses based on status codes
-					switch (crawl_response.status) {
-						case 400:
-							throw new ProviderError(
-								ErrorType.INVALID_INPUT,
-								'Invalid request parameters',
-								this.name,
-							);
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 403:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'API key does not have access to this endpoint',
-								this.name,
-							);
-						case 429:
-							throw new ProviderError(
-								ErrorType.RATE_LIMIT,
-								'Rate limit exceeded',
-								this.name,
-							);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Firecrawl API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${crawl_response.statusText}`,
-								this.name,
-							);
-					}
-				}
-
-				const crawl_data = (await crawl_response.json()) as FirecrawlCrawlResponse;
 
 				// Check if there was an error in the response
 				if (!crawl_data.success || crawl_data.error) {
@@ -159,22 +116,21 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 					attempts++;
 					await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds between polls
 
-					const status_response = await fetch(
-						`${config.processing.firecrawl_crawl.base_url}/${crawl_id}`,
-						{
-							method: 'GET',
-							headers: {
-								'Authorization': `Bearer ${api_key}`,
-							},
-							signal: AbortSignal.timeout(30000), // 30 second timeout for status checks
-						},
-					);
-
-					if (!status_response.ok) {
-						continue; // Skip this attempt if there's an error
+					let status_result: FirecrawlCrawlStatusResponse;
+					try {
+						status_result =
+							await http_json<FirecrawlCrawlStatusResponse>(
+								this.name,
+								`${config.processing.firecrawl_crawl.base_url}/${crawl_id}`,
+								{
+									method: 'GET',
+									headers: { Authorization: `Bearer ${api_key}` },
+									signal: AbortSignal.timeout(30000),
+								},
+							);
+					} catch {
+						continue; // skip this poll attempt on transient HTTP errors
 					}
-
-					const status_result = (await status_response.json()) as FirecrawlCrawlStatusResponse;
 
 					if (!status_result.success) {
 						throw new ProviderError(
@@ -184,7 +140,11 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 						);
 					}
 
-					if (status_result.status === 'completed' && status_result.data && status_result.data.length > 0) {
+					if (
+						status_result.status === 'completed' &&
+						status_result.data &&
+						status_result.data.length > 0
+					) {
 						status_data = status_result;
 						break;
 					} else if (status_result.status === 'error') {
@@ -199,7 +159,11 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 				}
 
 				// If we've reached max attempts without completion
-				if (!status_data || !status_data.data || status_data.data.length === 0) {
+				if (
+					!status_data ||
+					!status_data.data ||
+					status_data.data.length === 0
+				) {
 					throw new ProviderError(
 						ErrorType.PROVIDER_ERROR,
 						'Crawl timed out or returned no data - try again later or with a smaller scope',
@@ -209,7 +173,9 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 
 				// Filter out failed pages
 				const successful_pages = status_data.data.filter(
-					(page) => !page.error && (page.markdown || page.html || page.rawHtml),
+					(page) =>
+						!page.error &&
+						(page.markdown || page.html || page.rawHtml),
 				);
 
 				if (successful_pages.length === 0) {
@@ -253,7 +219,8 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 					metadata: {
 						title,
 						word_count,
-						failed_urls: failed_urls.length > 0 ? failed_urls : undefined,
+						failed_urls:
+							failed_urls.length > 0 ? failed_urls : undefined,
 						urls_processed: status_data.data.length,
 						successful_extractions: successful_pages.length,
 						extract_depth,

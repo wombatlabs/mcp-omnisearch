@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	BaseSearchParams,
 	ErrorType,
@@ -7,7 +8,6 @@ import {
 } from '../../../common/types.js';
 import {
 	apply_search_operators,
-	handle_rate_limit,
 	parse_search_operators,
 	retry_with_backoff,
 	sanitize_query,
@@ -111,7 +111,10 @@ export class BraveSearchProvider implements SearchProvider {
 					count: (params.limit ?? 10).toString(),
 				});
 
-				const response = await fetch(
+				const data = await http_json<
+					BraveSearchResponse & { message?: string }
+				>(
+					this.name,
 					`${config.search.brave.base_url}/web/search?${query_params}`,
 					{
 						method: 'GET',
@@ -123,47 +126,7 @@ export class BraveSearchProvider implements SearchProvider {
 					},
 				);
 
-				let data: BraveSearchResponse & { message?: string };
-				try {
-					const text = await response.text();
-					data = JSON.parse(text);
-				} catch (error) {
-					throw new ProviderError(
-						ErrorType.API_ERROR,
-						`Invalid JSON response: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
-						this.name,
-					);
-				}
-
-				if (!response.ok || !data.web?.results) {
-					const error_message = data.message || response.statusText;
-					switch (response.status) {
-						case 401:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								'Invalid API key',
-								this.name,
-							);
-						case 429:
-							handle_rate_limit(this.name);
-						case 500:
-							throw new ProviderError(
-								ErrorType.PROVIDER_ERROR,
-								'Brave Search API internal error',
-								this.name,
-							);
-						default:
-							throw new ProviderError(
-								ErrorType.API_ERROR,
-								`Unexpected error: ${error_message}`,
-								this.name,
-							);
-					}
-				}
-
-				return data.web.results.map((result) => ({
+				return (data.web?.results || []).map((result) => ({
 					title: result.title,
 					url: result.url,
 					snippet: result.description,
