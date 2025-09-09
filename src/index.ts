@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { ValibotJsonSchemaAdapter } from '@tmcp/adapter-valibot';
+import { StdioTransport } from '@tmcp/transport-stdio';
+import { McpServer } from 'tmcp';
+import type { GenericSchema } from 'valibot';
 import { validate_config } from './config/env.js';
 import { initialize_providers } from './providers/index.js';
 import { setup_handlers } from './server/handlers.js';
@@ -19,18 +21,23 @@ const pkg = JSON.parse(
 const { name, version } = pkg;
 
 class OmnisearchServer {
-	private server: Server;
+	private server: McpServer<GenericSchema>;
 
 	constructor() {
-		this.server = new Server(
+		const adapter = new ValibotJsonSchemaAdapter();
+
+		this.server = new McpServer(
 			{
 				name,
 				version,
+				description:
+					'MCP server for integrating Omnisearch with LLMs',
 			},
 			{
+				adapter,
 				capabilities: {
-					tools: {},
-					resources: {},
+					tools: { listChanged: true },
+					resources: { listChanged: true },
 				},
 			},
 		);
@@ -46,17 +53,14 @@ class OmnisearchServer {
 		setup_handlers(this.server);
 
 		// Error handling
-		this.server.onerror = (error: Error) =>
-			console.error('[MCP Error]', error);
 		process.on('SIGINT', async () => {
-			await this.server.close();
 			process.exit(0);
 		});
 	}
 
 	async run() {
-		const transport = new StdioServerTransport();
-		await this.server.connect(transport);
+		const transport = new StdioTransport(this.server);
+		transport.listen();
 		console.error('Omnisearch MCP server running on stdio');
 	}
 }
