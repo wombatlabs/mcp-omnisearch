@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.15
+
+### Patch Changes
+
+- correct mcp name
+
 ## 0.0.14
 
 ### Patch Changes
