@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.14
+
+### Patch Changes
+
+- d32dcf1: mcp registry setup
+
 ## 0.0.13
 
 ### Patch Changes
