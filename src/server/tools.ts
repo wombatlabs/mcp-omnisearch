@@ -8,6 +8,8 @@ import {
 	SearchProvider,
 } from '../common/types.js';
 import { create_error_response } from '../common/utils.js';
+import type { UnifiedFirecrawlProcessingProvider } from '../providers/unified/firecrawl_process.js';
+import type { UnifiedExaProcessingProvider } from '../providers/unified/exa_process.js';
 
 // Track available providers by category
 export const available_providers = {
@@ -18,22 +20,41 @@ export const available_providers = {
 };
 
 class ToolRegistry {
-	private search_providers: Map<string, SearchProvider> = new Map();
+	private web_search_provider?: SearchProvider;
+	private github_search_provider?: SearchProvider;
+	private ai_search_provider?: SearchProvider;
+	private firecrawl_process_provider?: UnifiedFirecrawlProcessingProvider;
+	private exa_process_provider?: UnifiedExaProcessingProvider;
 	private processing_providers: Map<string, ProcessingProvider> =
 		new Map();
 	private enhancement_providers: Map<string, EnhancementProvider> =
 		new Map();
 
-	register_search_provider(
-		provider: SearchProvider,
-		is_ai_response = false,
+	register_web_search_provider(provider: SearchProvider) {
+		this.web_search_provider = provider;
+		available_providers.search.add(provider.name);
+	}
+
+	register_github_search_provider(provider: SearchProvider) {
+		this.github_search_provider = provider;
+		available_providers.search.add(provider.name);
+	}
+
+	register_ai_search_provider(provider: SearchProvider) {
+		this.ai_search_provider = provider;
+		available_providers.ai_response.add(provider.name);
+	}
+
+	register_firecrawl_process_provider(
+		provider: UnifiedFirecrawlProcessingProvider,
 	) {
-		this.search_providers.set(provider.name, provider);
-		if (is_ai_response) {
-			available_providers.ai_response.add(provider.name);
-		} else {
-			available_providers.search.add(provider.name);
-		}
+		this.firecrawl_process_provider = provider;
+		available_providers.processing.add(provider.name);
+	}
+
+	register_exa_process_provider(provider: UnifiedExaProcessingProvider) {
+		this.exa_process_provider = provider;
+		available_providers.processing.add(provider.name);
 	}
 
 	register_processing_provider(provider: ProcessingProvider) {
@@ -47,214 +68,55 @@ class ToolRegistry {
 	}
 
 	setup_tool_handlers(server: McpServer<GenericSchema>) {
-		// Register standard search providers
-		this.search_providers.forEach((provider) => {
-			if (provider.name !== 'github') {
-				server.tool(
-					{
-						name: `${provider.name}_search`,
-						description: provider.description,
-						schema: v.object({
-							query: v.pipe(
-								v.string(),
-								v.description('Search query'),
-							),
-							limit: v.optional(
-								v.pipe(
-									v.number(),
-									v.description(
-										'Maximum number of results to return',
-									),
-								),
-							),
-							include_domains: v.optional(
-								v.pipe(
-									v.array(v.string()),
-									v.description(
-										'List of domains to include in search results',
-									),
-								),
-							),
-							exclude_domains: v.optional(
-								v.pipe(
-									v.array(v.string()),
-									v.description(
-										'List of domains to exclude from search results',
-									),
-								),
-							),
-						}),
-					},
-					async ({
-						query,
-						limit,
-						include_domains,
-						exclude_domains,
-					}) => {
-						try {
-							const search_params: BaseSearchParams = {
-								query,
-								limit,
-								include_domains,
-								exclude_domains,
-							};
-
-							const results = await provider.search(search_params);
-							return {
-								content: [
-									{
-										type: 'text' as const,
-										text: JSON.stringify(results, null, 2),
-									},
-								],
-							};
-						} catch (error) {
-							const error_response = create_error_response(
-								error as Error,
-							);
-							return {
-								content: [
-									{
-										type: 'text' as const,
-										text: error_response.error,
-									},
-								],
-								isError: true,
-							};
-						}
-					},
-				);
-			}
-		});
-
-		// Register GitHub tools if available
-		const githubProvider = this.search_providers.get('github') as any;
-		if (githubProvider) {
-			// GitHub Search Tool
+		// Register web search tool
+		if (this.web_search_provider) {
 			server.tool(
 				{
-					name: 'github_search',
-					description:
-						'Search for code on GitHub. This is ideal for finding code examples, tracking down function definitions, or locating files with specific names or paths. Supports advanced query syntax with qualifiers like `filename:`, `path:`, `repo:`, `user:`, `language:`, and `in:file`. For example, to find a file named `settings.json` in a `.claude` directory, you could use the query: `filename:settings.json path:.claude`',
+					name: 'web_search',
+					description: this.web_search_provider.description,
 					schema: v.object({
-						query: v.pipe(v.string(), v.description('Search query')),
+						query: v.pipe(v.string(), v.description('Query')),
+						provider: v.pipe(
+							v.union([
+								v.literal('tavily'),
+								v.literal('brave'),
+								v.literal('kagi'),
+								v.literal('exa'),
+							]),
+							v.description('Search provider'),
+						),
 						limit: v.optional(
+							v.pipe(v.number(), v.description('Result limit')),
+						),
+						include_domains: v.optional(
 							v.pipe(
-								v.number(),
-								v.description('Maximum number of results to return'),
+								v.array(v.string()),
+								v.description('Domains to include'),
+							),
+						),
+						exclude_domains: v.optional(
+							v.pipe(
+								v.array(v.string()),
+								v.description('Domains to exclude'),
 							),
 						),
 					}),
 				},
-				async ({ query, limit }) => {
+				async ({
+					query,
+					provider,
+					limit,
+					include_domains,
+					exclude_domains,
+				}) => {
 					try {
-						const results = await githubProvider.search_code({
+						const results = await this.web_search_provider!.search({
 							query,
+							provider,
 							limit,
-						});
-						return {
-							content: [
-								{
-									type: 'text' as const,
-									text: JSON.stringify(results, null, 2),
-								},
-							],
-						};
-					} catch (error) {
-						const error_response = create_error_response(
-							error as Error,
-						);
-						return {
-							content: [
-								{
-									type: 'text' as const,
-									text: error_response.error,
-								},
-							],
-							isError: true,
-						};
-					}
-				},
-			);
-
-			// GitHub Repository Search Tool
-			server.tool(
-				{
-					name: 'github_repository_search',
-					description: 'Search for repositories on GitHub',
-					schema: v.object({
-						query: v.pipe(v.string(), v.description('Search query')),
-						limit: v.optional(
-							v.pipe(
-								v.number(),
-								v.description('Maximum number of results to return'),
-							),
-						),
-						sort: v.optional(
-							v.pipe(
-								v.union([
-									v.literal('stars'),
-									v.literal('forks'),
-									v.literal('updated'),
-								]),
-								v.description('Sort order for results'),
-							),
-						),
-					}),
-				},
-				async ({ query, limit, sort }) => {
-					try {
-						const results = await githubProvider.search_repositories({
-							query,
-							limit,
-							sort,
-						});
-						return {
-							content: [
-								{
-									type: 'text' as const,
-									text: JSON.stringify(results, null, 2),
-								},
-							],
-						};
-					} catch (error) {
-						const error_response = create_error_response(
-							error as Error,
-						);
-						return {
-							content: [
-								{
-									type: 'text' as const,
-									text: error_response.error,
-								},
-							],
-							isError: true,
-						};
-					}
-				},
-			);
-
-			// GitHub User Search Tool
-			server.tool(
-				{
-					name: 'github_user_search',
-					description: 'Search for users and organizations on GitHub',
-					schema: v.object({
-						query: v.pipe(v.string(), v.description('Search query')),
-						limit: v.optional(
-							v.pipe(
-								v.number(),
-								v.description('Maximum number of results to return'),
-							),
-						),
-					}),
-				},
-				async ({ query, limit }) => {
-					try {
-						const results = await githubProvider.search_users({
-							query,
-							limit,
-						});
+							include_domains,
+							exclude_domains,
+						} as any);
 						return {
 							content: [
 								{
@@ -281,7 +143,248 @@ class ToolRegistry {
 			);
 		}
 
-		// Register processing providers
+		// Register GitHub search tool
+		if (this.github_search_provider) {
+			server.tool(
+				{
+					name: 'github_search',
+					description: this.github_search_provider.description,
+					schema: v.object({
+						query: v.pipe(v.string(), v.description('Query')),
+						search_type: v.optional(
+							v.pipe(
+								v.union([
+									v.literal('code'),
+									v.literal('repositories'),
+									v.literal('users'),
+								]),
+								v.description('Search type (default: code)'),
+							),
+						),
+						limit: v.optional(
+							v.pipe(v.number(), v.description('Result limit')),
+						),
+						sort: v.optional(
+							v.pipe(
+								v.union([
+									v.literal('stars'),
+									v.literal('forks'),
+									v.literal('updated'),
+								]),
+								v.description('Sort order (repositories only)'),
+							),
+						),
+					}),
+				},
+				async ({ query, search_type, limit, sort }) => {
+					try {
+						const results = await this.github_search_provider!.search({
+							query,
+							search_type,
+							limit,
+							sort,
+						} as any);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: JSON.stringify(results, null, 2),
+								},
+							],
+						};
+					} catch (error) {
+						const error_response = create_error_response(
+							error as Error,
+						);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: error_response.error,
+								},
+							],
+							isError: true,
+						};
+					}
+				},
+			);
+		}
+
+		// Register AI search tool
+		if (this.ai_search_provider) {
+			server.tool(
+				{
+					name: 'ai_search',
+					description: this.ai_search_provider.description,
+					schema: v.object({
+						query: v.pipe(v.string(), v.description('Query')),
+						provider: v.pipe(
+							v.union([
+								v.literal('perplexity'),
+								v.literal('kagi_fastgpt'),
+								v.literal('exa_answer'),
+							]),
+							v.description('AI provider'),
+						),
+						limit: v.optional(
+							v.pipe(v.number(), v.description('Result limit')),
+						),
+					}),
+				},
+				async ({ query, provider, limit }) => {
+					try {
+						const results = await this.ai_search_provider!.search({
+							query,
+							provider,
+							limit,
+						} as any);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: JSON.stringify(results, null, 2),
+								},
+							],
+						};
+					} catch (error) {
+						const error_response = create_error_response(
+							error as Error,
+						);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: error_response.error,
+								},
+							],
+							isError: true,
+						};
+					}
+				},
+			);
+		}
+
+		// Register Firecrawl process tool
+		if (this.firecrawl_process_provider) {
+			server.tool(
+				{
+					name: 'firecrawl_process',
+					description: this.firecrawl_process_provider.description,
+					schema: v.object({
+						url: v.pipe(
+							v.union([v.string(), v.array(v.string())]),
+							v.description('URL(s)'),
+						),
+						mode: v.pipe(
+							v.union([
+								v.literal('scrape'),
+								v.literal('crawl'),
+								v.literal('map'),
+								v.literal('extract'),
+								v.literal('actions'),
+							]),
+							v.description('Processing mode'),
+						),
+						extract_depth: v.optional(
+							v.pipe(
+								v.union([v.literal('basic'), v.literal('advanced')]),
+								v.description('Extraction depth'),
+							),
+						),
+					}),
+				},
+				async ({ url, mode, extract_depth }) => {
+					try {
+						const result =
+							await this.firecrawl_process_provider!.process_content(
+								url,
+								extract_depth,
+								mode as any,
+							);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: JSON.stringify(result, null, 2),
+								},
+							],
+						};
+					} catch (error) {
+						const error_response = create_error_response(
+							error as Error,
+						);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: error_response.error,
+								},
+							],
+							isError: true,
+						};
+					}
+				},
+			);
+		}
+
+		// Register Exa process tool
+		if (this.exa_process_provider) {
+			server.tool(
+				{
+					name: 'exa_process',
+					description: this.exa_process_provider.description,
+					schema: v.object({
+						url: v.pipe(
+							v.union([v.string(), v.array(v.string())]),
+							v.description('URL(s)'),
+						),
+						mode: v.pipe(
+							v.union([v.literal('contents'), v.literal('similar')]),
+							v.description('Processing mode'),
+						),
+						extract_depth: v.optional(
+							v.pipe(
+								v.union([v.literal('basic'), v.literal('advanced')]),
+								v.description('Extraction depth'),
+							),
+						),
+					}),
+				},
+				async ({ url, mode, extract_depth }) => {
+					try {
+						const result =
+							await this.exa_process_provider!.process_content(
+								url,
+								extract_depth,
+								mode as any,
+							);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: JSON.stringify(result, null, 2),
+								},
+							],
+						};
+					} catch (error) {
+						const error_response = create_error_response(
+							error as Error,
+						);
+						return {
+							content: [
+								{
+									type: 'text' as const,
+									text: error_response.error,
+								},
+							],
+							isError: true,
+						};
+					}
+				},
+			);
+		}
+
+		// Register remaining processing providers (kagi_summarizer, tavily_extract)
 		this.processing_providers.forEach((provider) => {
 			server.tool(
 				{
@@ -290,14 +393,12 @@ class ToolRegistry {
 					schema: v.object({
 						url: v.pipe(
 							v.union([v.string(), v.array(v.string())]),
-							v.description('Single URL or array of URLs to process'),
+							v.description('URL(s)'),
 						),
 						extract_depth: v.optional(
 							v.pipe(
 								v.union([v.literal('basic'), v.literal('advanced')]),
-								v.description(
-									'The depth of the extraction process. "advanced" retrieves more data but costs more credits.',
-								),
+								v.description('Extraction depth'),
 							),
 						),
 					}),
@@ -341,10 +442,7 @@ class ToolRegistry {
 					name: `${provider.name}_enhance`,
 					description: provider.description,
 					schema: v.object({
-						content: v.pipe(
-							v.string(),
-							v.description('Content to enhance'),
-						),
+						content: v.pipe(v.string(), v.description('Content')),
 					}),
 				},
 				async ({ content }) => {
@@ -386,11 +484,28 @@ export const register_tools = (server: McpServer<GenericSchema>) => {
 };
 
 // Export methods to register providers
-export const register_search_provider = (
-	provider: SearchProvider,
-	is_ai_response = false,
+export const register_web_search_provider = (provider: SearchProvider) => {
+	registry.register_web_search_provider(provider);
+};
+
+export const register_github_search_provider = (provider: SearchProvider) => {
+	registry.register_github_search_provider(provider);
+};
+
+export const register_ai_search_provider = (provider: SearchProvider) => {
+	registry.register_ai_search_provider(provider);
+};
+
+export const register_firecrawl_process_provider = (
+	provider: UnifiedFirecrawlProcessingProvider,
 ) => {
-	registry.register_search_provider(provider, is_ai_response);
+	registry.register_firecrawl_process_provider(provider);
+};
+
+export const register_exa_process_provider = (
+	provider: UnifiedExaProcessingProvider,
+) => {
+	registry.register_exa_process_provider(provider);
 };
 
 export const register_processing_provider = (
