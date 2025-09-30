@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.16
+
+### Patch Changes
+
+- 732a8fd: Consolidate 20 MCP tools into 8
+
 ## 0.0.15
 
 ### Patch Changes
