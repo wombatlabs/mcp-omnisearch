@@ -1,5 +1,11 @@
 # mcp-omnisearch
 
+## 0.0.17
+
+### Patch Changes
+
+- 845649b: Enhanced Web Search with Provider-Specific Operators
+
 ## 0.0.16
 
 ### Patch Changes
