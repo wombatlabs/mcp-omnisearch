@@ -35,7 +35,9 @@ export const initialize_providers = () => {
 
 	// Check if we have GitHub API key
 	if (is_api_key_valid(config.search.github.api_key, 'github')) {
-		register_github_search_provider(new UnifiedGitHubSearchProvider());
+		register_github_search_provider(
+			new UnifiedGitHubSearchProvider(),
+		);
 	}
 
 	// Check if we have at least one AI search provider API key
@@ -81,7 +83,9 @@ export const initialize_providers = () => {
 		);
 
 	if (has_firecrawl) {
-		register_firecrawl_process_provider(new UnifiedFirecrawlProvider());
+		register_firecrawl_process_provider(
+			new UnifiedFirecrawlProvider(),
+		);
 	}
 
 	// Check if we have at least one Exa processing API key

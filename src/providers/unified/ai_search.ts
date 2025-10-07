@@ -9,7 +9,10 @@ import { ExaAnswerProvider } from '../ai_response/exa_answer/index.js';
 import { KagiFastGPTProvider } from '../ai_response/kagi_fastgpt/index.js';
 import { PerplexityProvider } from '../ai_response/perplexity/index.js';
 
-export type AISearchProvider = 'perplexity' | 'kagi_fastgpt' | 'exa_answer';
+export type AISearchProvider =
+	| 'perplexity'
+	| 'kagi_fastgpt'
+	| 'exa_answer';
 
 export interface UnifiedAISearchParams extends BaseSearchParams {
 	provider: AISearchProvider;
@@ -20,7 +23,8 @@ export class UnifiedAISearchProvider implements SearchProvider {
 	description =
 		'AI-powered search with reasoning. Supports perplexity (real-time + reasoning), kagi_fastgpt (quick answers), exa_answer (semantic AI).';
 
-	private providers: Map<AISearchProvider, SearchProvider> = new Map();
+	private providers: Map<AISearchProvider, SearchProvider> =
+		new Map();
 
 	constructor() {
 		this.providers.set('perplexity', new PerplexityProvider());
@@ -28,7 +32,9 @@ export class UnifiedAISearchProvider implements SearchProvider {
 		this.providers.set('exa_answer', new ExaAnswerProvider());
 	}
 
-	async search(params: UnifiedAISearchParams): Promise<SearchResult[]> {
+	async search(
+		params: UnifiedAISearchParams,
+	): Promise<SearchResult[]> {
 		const { provider, ...searchParams } = params;
 
 		if (!provider) {

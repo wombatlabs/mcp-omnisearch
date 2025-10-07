@@ -1,22 +1,22 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
-  "name": "io.github.spences10/mcp-omnisearch",
-  "description": "MCP server for integrating Omnisearch with LLMs",
-  "status": "active",
-  "repository": {
-    "url": "https://github.com/spences10/mcp-omnisearch",
-    "source": "github"
-  },
-  "version": "0.0.15",
-  "packages": [
-    {
-      "registry_type": "npm",
-      "registry_base_url": "https://registry.npmjs.org",
-      "identifier": "mcp-omnisearch",
-      "version": "0.0.15",
-      "transport": {
-        "type": "stdio"
-      }
-    }
-  ]
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+	"name": "io.github.spences10/mcp-omnisearch",
+	"description": "MCP server for integrating Omnisearch with LLMs",
+	"status": "active",
+	"repository": {
+		"url": "https://github.com/spences10/mcp-omnisearch",
+		"source": "github"
+	},
+	"version": "0.0.15",
+	"packages": [
+		{
+			"registry_type": "npm",
+			"registry_base_url": "https://registry.npmjs.org",
+			"identifier": "mcp-omnisearch",
+			"version": "0.0.15",
+			"transport": {
+				"type": "stdio"
+			}
+		}
+	]
 }

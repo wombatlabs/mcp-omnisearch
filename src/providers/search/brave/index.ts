@@ -28,7 +28,7 @@ interface BraveSearchResponse {
 export class BraveSearchProvider implements SearchProvider {
 	name = 'brave';
 	description =
-		'Privacy-focused search engine with good coverage of technical topics. Features native support for search operators (site:, filetype:, intitle:, inurl:, before:, after:, and exact phrases). Best for technical documentation, developer resources, and privacy-sensitive queries.';
+		'Privacy-focused search with operators: site:, -site:, filetype:/ext:, intitle:, inurl:, inbody:, inpage:, lang:, loc:, before:, after:, +term, -term, "exact". Best for technical content and privacy-sensitive queries.';
 
 	async search(params: BaseSearchParams): Promise<SearchResult[]> {
 		const api_key = validate_api_key(
@@ -84,6 +84,26 @@ export class BraveSearchProvider implements SearchProvider {
 					filters.push(`inurl:${search_params.url_filter}`);
 				}
 
+				// Add body filter
+				if (search_params.body_filter) {
+					filters.push(`inbody:${search_params.body_filter}`);
+				}
+
+				// Add page filter
+				if (search_params.page_filter) {
+					filters.push(`inpage:${search_params.page_filter}`);
+				}
+
+				// Add language filter
+				if (search_params.language) {
+					filters.push(`lang:${search_params.language}`);
+				}
+
+				// Add location filter
+				if (search_params.location) {
+					filters.push(`loc:${search_params.location}`);
+				}
+
 				// Add date filters
 				if (search_params.date_before) {
 					filters.push(`before:${search_params.date_before}`);
@@ -98,6 +118,22 @@ export class BraveSearchProvider implements SearchProvider {
 						...search_params.exact_phrases.map(
 							(phrase) => `"${phrase}"`,
 						),
+					);
+				}
+
+				// Add force include terms
+				if (search_params.force_include_terms?.length) {
+					filters.push(
+						...search_params.force_include_terms.map(
+							(term) => `+${term}`,
+						),
+					);
+				}
+
+				// Add exclude terms
+				if (search_params.exclude_terms?.length) {
+					filters.push(
+						...search_params.exclude_terms.map((term) => `-${term}`),
 					);
 				}
 

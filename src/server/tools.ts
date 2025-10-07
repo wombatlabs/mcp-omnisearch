@@ -2,14 +2,13 @@ import { McpServer } from 'tmcp';
 import type { GenericSchema } from 'valibot';
 import * as v from 'valibot';
 import {
-	BaseSearchParams,
 	EnhancementProvider,
 	ProcessingProvider,
 	SearchProvider,
 } from '../common/types.js';
 import { create_error_response } from '../common/utils.js';
-import type { UnifiedFirecrawlProcessingProvider } from '../providers/unified/firecrawl_process.js';
 import type { UnifiedExaProcessingProvider } from '../providers/unified/exa_process.js';
+import type { UnifiedFirecrawlProcessingProvider } from '../providers/unified/firecrawl_process.js';
 
 // Track available providers by category
 export const available_providers = {
@@ -52,7 +51,9 @@ class ToolRegistry {
 		available_providers.processing.add(provider.name);
 	}
 
-	register_exa_process_provider(provider: UnifiedExaProcessingProvider) {
+	register_exa_process_provider(
+		provider: UnifiedExaProcessingProvider,
+	) {
 		this.exa_process_provider = provider;
 		available_providers.processing.add(provider.name);
 	}
@@ -178,12 +179,14 @@ class ToolRegistry {
 				},
 				async ({ query, search_type, limit, sort }) => {
 					try {
-						const results = await this.github_search_provider!.search({
-							query,
-							search_type,
-							limit,
-							sort,
-						} as any);
+						const results = await this.github_search_provider!.search(
+							{
+								query,
+								search_type,
+								limit,
+								sort,
+							} as any,
+						);
 						return {
 							content: [
 								{
@@ -484,15 +487,21 @@ export const register_tools = (server: McpServer<GenericSchema>) => {
 };
 
 // Export methods to register providers
-export const register_web_search_provider = (provider: SearchProvider) => {
+export const register_web_search_provider = (
+	provider: SearchProvider,
+) => {
 	registry.register_web_search_provider(provider);
 };
 
-export const register_github_search_provider = (provider: SearchProvider) => {
+export const register_github_search_provider = (
+	provider: SearchProvider,
+) => {
 	registry.register_github_search_provider(provider);
 };
 
-export const register_ai_search_provider = (provider: SearchProvider) => {
+export const register_ai_search_provider = (
+	provider: SearchProvider,
+) => {
 	registry.register_ai_search_provider(provider);
 };
 

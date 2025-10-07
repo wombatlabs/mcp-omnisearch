@@ -19,9 +19,10 @@ export interface UnifiedWebSearchParams extends BaseSearchParams {
 export class UnifiedWebSearchProvider implements SearchProvider {
 	name = 'web_search';
 	description =
-		'Search the web using multiple providers. Supports tavily (factual/academic), brave (privacy-focused), kagi (high-quality), exa (AI-powered).';
+		'Search the web. Providers: tavily (factual/citations), brave (privacy/operators), kagi (quality/operators), exa (AI-semantic). Brave/Kagi support query operators like site:, filetype:, lang:, etc.';
 
-	private providers: Map<WebSearchProvider, SearchProvider> = new Map();
+	private providers: Map<WebSearchProvider, SearchProvider> =
+		new Map();
 
 	constructor() {
 		this.providers.set('tavily', new TavilySearchProvider());
@@ -30,7 +31,9 @@ export class UnifiedWebSearchProvider implements SearchProvider {
 		this.providers.set('exa', new ExaSearchProvider());
 	}
 
-	async search(params: UnifiedWebSearchParams): Promise<SearchResult[]> {
+	async search(
+		params: UnifiedWebSearchParams,
+	): Promise<SearchResult[]> {
 		const { provider, ...searchParams } = params;
 
 		if (!provider) {

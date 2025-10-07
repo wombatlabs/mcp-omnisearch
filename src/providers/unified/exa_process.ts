@@ -19,12 +19,15 @@ export interface UnifiedExaProcessingProvider {
 	): Promise<ProcessingResult>;
 }
 
-export class UnifiedExaProcessProvider implements UnifiedExaProcessingProvider {
+export class UnifiedExaProcessProvider
+	implements UnifiedExaProcessingProvider
+{
 	name = 'exa_process';
 	description =
 		'Extract content with Exa. Modes: contents (full content from result IDs), similar (find similar pages).';
 
-	private providers: Map<ExaProcessMode, ProcessingProvider> = new Map();
+	private providers: Map<ExaProcessMode, ProcessingProvider> =
+		new Map();
 
 	constructor() {
 		this.providers.set('contents', new ExaContentsProvider());

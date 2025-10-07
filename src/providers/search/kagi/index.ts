@@ -31,7 +31,7 @@ interface KagiSearchResponse {
 export class KagiSearchProvider implements SearchProvider {
 	name = 'kagi';
 	description =
-		'High-quality search results with minimal advertising influence, focused on authoritative sources. Supports search operators in query string (site:, -site:, filetype:, intitle:, inurl:, before:, after:, and exact phrases). Features strong privacy protection and access to specialized knowledge indexes. Best for research, technical documentation, and finding high-quality content without SEO manipulation.';
+		'High-quality search with operators: site:, -site:, filetype:/ext:, intitle:, inurl:, inbody:, inpage:, lang:, loc:, before:, after:, +term, -term, "exact". Privacy-focused with specialized knowledge indexes. Best for research and technical documentation.';
 
 	async search(params: BaseSearchParams): Promise<SearchResult[]> {
 		const api_key = validate_api_key(
@@ -103,10 +103,50 @@ export class KagiSearchProvider implements SearchProvider {
 					query_params.set('q', query);
 				}
 
+				// Add body filter
+				if (search_params.body_filter) {
+					query += ` inbody:${search_params.body_filter}`;
+					query_params.set('q', query);
+				}
+
+				// Add page filter
+				if (search_params.page_filter) {
+					query += ` inpage:${search_params.page_filter}`;
+					query_params.set('q', query);
+				}
+
+				// Add language filter
+				if (search_params.language) {
+					query += ` lang:${search_params.language}`;
+					query_params.set('q', query);
+				}
+
+				// Add location filter
+				if (search_params.location) {
+					query += ` loc:${search_params.location}`;
+					query_params.set('q', query);
+				}
+
 				// Add exact phrases
 				if (search_params.exact_phrases?.length) {
 					query += ` ${search_params.exact_phrases
 						.map((phrase) => `"${phrase}"`)
+						.join(' ')}`;
+					query_params.set('q', query);
+				}
+
+				// Add force include terms
+				if (search_params.force_include_terms?.length) {
+					query += ` ${search_params.force_include_terms
+						.map((term) => `+${term}`)
+						.join(' ')}`;
+					query_params.set('q', query);
+				}
+
+				// Add exclude terms
+				if (search_params.exclude_terms?.length) {
+					query += ` ${search_params.exclude_terms
+						.map((term) => `-${term}`)
 						.join(' ')}`;
 					query_params.set('q', query);
 				}

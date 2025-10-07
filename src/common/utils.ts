@@ -130,11 +130,18 @@ export interface SearchOperator {
 		| 'site'
 		| 'exclude_site'
 		| 'filetype'
+		| 'ext'
 		| 'intitle'
 		| 'inurl'
+		| 'inbody'
+		| 'inpage'
+		| 'language'
+		| 'location'
 		| 'before'
 		| 'after'
 		| 'exact'
+		| 'force_include'
+		| 'exclude_term'
 		| 'boolean';
 	value: string;
 	original_text: string;
@@ -149,11 +156,18 @@ const operator_patterns = {
 	site: /site:([^\s]+)/g,
 	exclude_site: /-site:([^\s]+)/g,
 	filetype: /filetype:([^\s]+)/g,
+	ext: /ext:([^\s]+)/g,
 	intitle: /intitle:([^\s]+)/g,
 	inurl: /inurl:([^\s]+)/g,
+	inbody: /inbody:"?([^"\s]+)"?/g,
+	inpage: /inpage:"?([^"\s]+)"?/g,
+	language: /(?:lang|language):([^\s]+)/g,
+	location: /(?:loc|location):([^\s]+)/g,
 	before: /before:(\d{4}(?:-\d{2}(?:-\d{2})?)?)/g,
 	after: /after:(\d{4}(?:-\d{2}(?:-\d{2})?)?)/g,
 	exact: /"([^"]+)"/g,
+	force_include: /\+([^\s]+)/g,
+	exclude_term: /-([^\s:]+)(?!\s*site:)/g,
 	boolean: /\b(AND|OR|NOT)\b/g,
 };
 
@@ -194,9 +208,15 @@ export interface SearchParams {
 	file_type?: string;
 	title_filter?: string;
 	url_filter?: string;
+	body_filter?: string;
+	page_filter?: string;
+	language?: string;
+	location?: string;
 	date_before?: string;
 	date_after?: string;
 	exact_phrases?: string[];
+	force_include_terms?: string[];
+	exclude_terms?: string[];
 	boolean_operators?: {
 		type: 'AND' | 'OR' | 'NOT';
 		terms: string[];
@@ -225,6 +245,7 @@ export const apply_search_operators = (
 				];
 				break;
 			case 'filetype':
+			case 'ext':
 				params.file_type = operator.value;
 				break;
 			case 'intitle':
@@ -232,6 +253,18 @@ export const apply_search_operators = (
 				break;
 			case 'inurl':
 				params.url_filter = operator.value;
+				break;
+			case 'inbody':
+				params.body_filter = operator.value;
+				break;
+			case 'inpage':
+				params.page_filter = operator.value;
+				break;
+			case 'language':
+				params.language = operator.value;
+				break;
+			case 'location':
+				params.location = operator.value;
 				break;
 			case 'before':
 				params.date_before = operator.value;
@@ -242,6 +275,18 @@ export const apply_search_operators = (
 			case 'exact':
 				params.exact_phrases = [
 					...(params.exact_phrases || []),
+					operator.value,
+				];
+				break;
+			case 'force_include':
+				params.force_include_terms = [
+					...(params.force_include_terms || []),
+					operator.value,
+				];
+				break;
+			case 'exclude_term':
+				params.exclude_terms = [
+					...(params.exclude_terms || []),
 					operator.value,
 				];
 				break;

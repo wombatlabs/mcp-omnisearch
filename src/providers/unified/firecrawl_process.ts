@@ -34,7 +34,8 @@ export class UnifiedFirecrawlProvider
 	description =
 		'Extract web content with Firecrawl. Modes: scrape (single page), crawl (deep crawl), map (URL discovery), extract (structured data), actions (interactive).';
 
-	private providers: Map<FirecrawlMode, ProcessingProvider> = new Map();
+	private providers: Map<FirecrawlMode, ProcessingProvider> =
+		new Map();
 
 	constructor() {
 		this.providers.set('scrape', new FirecrawlScrapeProvider());

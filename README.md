@@ -17,14 +17,14 @@ processing, and enhancement features through a single interface.
 - **Tavily Search**: Optimized for factual information with strong
   citation support. Supports domain filtering through API parameters
   (include_domains/exclude_domains).
-- **Brave Search**: Privacy-focused search with good technical content
-  coverage. Features native support for search operators (site:,
-  -site:, filetype:, intitle:, inurl:, before:, after:, and exact
-  phrases).
-- **Kagi Search**: High-quality search results with minimal
-  advertising influence, focused on authoritative sources. Supports
-  search operators in query string (site:, -site:, filetype:,
-  intitle:, inurl:, before:, after:, and exact phrases).
+- **Brave Search**: Privacy-focused search with comprehensive operator
+  support: `site:`, `-site:`, `filetype:`/`ext:`, `intitle:`,
+  `inurl:`, `inbody:`, `inpage:`, `lang:`, `loc:`, `before:`,
+  `after:`, `+term`, `-term`, and exact phrases (`"phrase"`).
+- **Kagi Search**: High-quality search with full operator support:
+  `site:`, `-site:`, `filetype:`/`ext:`, `intitle:`, `inurl:`,
+  `inbody:`, `inpage:`, `lang:`, `loc:`, `before:`, `after:`, `+term`,
+  `-term`, and exact phrases (`"phrase"`).
 - **Exa Search**: AI-powered web search using neural and keyword
   search. Optimized for AI applications with semantic understanding,
   content extraction, and research capabilities.
@@ -42,30 +42,44 @@ processing, and enhancement features through a single interface.
 MCP Omnisearch provides powerful search capabilities through operators
 and parameters:
 
-#### Common Search Features
+#### Search Operator Reference
 
-- Domain filtering: Available across all providers
-  - Tavily: Through API parameters (include_domains/exclude_domains)
-  - Brave & Kagi: Through site: and -site: operators
-- File type filtering: Available in Brave and Kagi (filetype:)
-- Title and URL filtering: Available in Brave and Kagi (intitle:,
-  inurl:)
-- Date filtering: Available in Brave and Kagi (before:, after:)
-- Exact phrase matching: Available in Brave and Kagi ("phrase")
+**Brave & Kagi Operators** (use in query string):
+
+- **Domain**: `site:example.com`, `-site:example.com`
+- **File type**: `filetype:pdf` or `ext:pdf`
+- **Location**: `intitle:term`, `inurl:term`, `inbody:term`,
+  `inpage:term`
+- **Language**: `lang:en` (ISO 639-1 codes)
+- **Country**: `loc:us` (ISO 3166-1 codes)
+- **Date**: `before:2024`, `after:2024-01-01`
+- **Exact**: `"exact phrase"`
+- **Include/Exclude**: `+required`, `-excluded`
+
+**Tavily** (API parameters only):
+
+- Domain filtering: `include_domains`, `exclude_domains`
 
 #### Example Usage
 
 ```typescript
-// Using Brave or Kagi with query string operators
+// Brave/Kagi: Advanced operators in query
 {
-  "query": "filetype:pdf site:microsoft.com typescript guide"
+  "query": "filetype:pdf lang:en site:microsoft.com +typescript -javascript",
+  "provider": "brave"
 }
 
-// Using Tavily with API parameters
+// Brave/Kagi: Search gists
+{
+  "query": "site:gist.github.com claude code settings",
+  "provider": "brave"
+}
+
+// Tavily: API parameters for domain filtering
 {
   "query": "typescript guide",
-  "include_domains": ["microsoft.com"],
-  "exclude_domains": ["github.com"]
+  "provider": "tavily",
+  "include_domains": ["microsoft.com"]
 }
 ```
 

@@ -34,7 +34,10 @@ export class UnifiedGitHubSearchProvider implements SearchProvider {
 			case 'code':
 				return this.provider.search_code(searchParams);
 			case 'repositories':
-				return this.provider.search_repositories({ ...searchParams, sort });
+				return this.provider.search_repositories({
+					...searchParams,
+					sort,
+				});
 			case 'users':
 				return this.provider.search_users(searchParams);
 			default:
