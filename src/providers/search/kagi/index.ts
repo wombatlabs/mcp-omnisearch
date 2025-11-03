@@ -8,9 +8,9 @@ import {
 } from '../../../common/types.js';
 import {
 	apply_search_operators,
+	build_query_with_operators,
 	parse_search_operators,
 	retry_with_backoff,
-	sanitize_query,
 	validate_api_key,
 } from '../../../common/utils.js';
 import { config } from '../../../config/env.js';
@@ -45,43 +45,26 @@ export class KagiSearchProvider implements SearchProvider {
 
 		const search_request = async () => {
 			try {
-				let query = sanitize_query(search_params.query);
+				// Build query with all operators using shared utility
+				// Exclude file_type and dates since Kagi handles them as query params
+				const query = build_query_with_operators(
+					search_params,
+					params.include_domains,
+					params.exclude_domains,
+					{ exclude_file_type: true, exclude_dates: true },
+				);
+
 				const query_params = new URLSearchParams({
 					q: query,
 					limit: (params.limit ?? 10).toString(),
 				});
 
-				// Handle domain filters using query string operators
-				const include_domains = [
-					...(params.include_domains ?? []),
-					...(search_params.include_domains ?? []),
-				];
-				if (include_domains.length) {
-					const domain_filter = include_domains
-						.map((domain) => `site:${domain}`)
-						.join(' OR ');
-					query = `${query} ${domain_filter}`;
-				}
-
-				const exclude_domains = [
-					...(params.exclude_domains ?? []),
-					...(search_params.exclude_domains ?? []),
-				];
-				if (exclude_domains.length) {
-					query = `${query} ${exclude_domains
-						.map((domain) => `-site:${domain}`)
-						.join(' ')}`;
-				}
-
-				// Update query parameter with domain filters
-				query_params.set('q', query);
-
-				// Add file type filter
+				// Add file type as query parameter (Kagi-specific)
 				if (search_params.file_type) {
 					query_params.append('file_type', search_params.file_type);
 				}
 
-				// Add time range filters
+				// Add time range as query parameter (Kagi-specific)
 				if (search_params.date_before || search_params.date_after) {
 					const time_range: string[] = [];
 					if (search_params.date_after) {
@@ -91,64 +74,6 @@ export class KagiSearchProvider implements SearchProvider {
 						time_range.push(`before:${search_params.date_before}`);
 					}
 					query_params.append('time_range', time_range.join(','));
-				}
-
-				// Add title and URL filters to the query
-				if (search_params.title_filter) {
-					query += ` intitle:${search_params.title_filter}`;
-					query_params.set('q', query);
-				}
-				if (search_params.url_filter) {
-					query += ` inurl:${search_params.url_filter}`;
-					query_params.set('q', query);
-				}
-
-				// Add body filter
-				if (search_params.body_filter) {
-					query += ` inbody:${search_params.body_filter}`;
-					query_params.set('q', query);
-				}
-
-				// Add page filter
-				if (search_params.page_filter) {
-					query += ` inpage:${search_params.page_filter}`;
-					query_params.set('q', query);
-				}
-
-				// Add language filter
-				if (search_params.language) {
-					query += ` lang:${search_params.language}`;
-					query_params.set('q', query);
-				}
-
-				// Add location filter
-				if (search_params.location) {
-					query += ` loc:${search_params.location}`;
-					query_params.set('q', query);
-				}
-
-				// Add exact phrases
-				if (search_params.exact_phrases?.length) {
-					query += ` ${search_params.exact_phrases
-						.map((phrase) => `"${phrase}"`)
-						.join(' ')}`;
-					query_params.set('q', query);
-				}
-
-				// Add force include terms
-				if (search_params.force_include_terms?.length) {
-					query += ` ${search_params.force_include_terms
-						.map((term) => `+${term}`)
-						.join(' ')}`;
-					query_params.set('q', query);
-				}
-
-				// Add exclude terms
-				if (search_params.exclude_terms?.length) {
-					query += ` ${search_params.exclude_terms
-						.map((term) => `-${term}`)
-						.join(' ')}`;
-					query_params.set('q', query);
 				}
 
 				const data = await http_json<

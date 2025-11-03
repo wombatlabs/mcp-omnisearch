@@ -305,3 +305,115 @@ export const apply_search_operators = (
 
 	return params;
 };
+
+export interface QueryBuildOptions {
+	exclude_file_type?: boolean;
+	exclude_dates?: boolean;
+}
+
+/**
+ * Build a complete query string with all search operators for query-based providers
+ * Used by Brave and Kagi which reconstruct operators in the query string
+ */
+export const build_query_with_operators = (
+	search_params: SearchParams,
+	additional_include_domains?: string[],
+	additional_exclude_domains?: string[],
+	options?: QueryBuildOptions,
+): string => {
+	let query = search_params.query;
+	const filters: string[] = [];
+
+	// Handle domain filters
+	const include_domains = [
+		...(additional_include_domains ?? []),
+		...(search_params.include_domains ?? []),
+	];
+	if (include_domains.length) {
+		const domain_filter = include_domains
+			.map((domain) => `site:${domain}`)
+			.join(' OR ');
+		filters.push(domain_filter);
+	}
+
+	const exclude_domains = [
+		...(additional_exclude_domains ?? []),
+		...(search_params.exclude_domains ?? []),
+	];
+	if (exclude_domains.length) {
+		filters.push(
+			...exclude_domains.map((domain) => `-site:${domain}`),
+		);
+	}
+
+	// Add file type filter
+	if (search_params.file_type && !options?.exclude_file_type) {
+		filters.push(`filetype:${search_params.file_type}`);
+	}
+
+	// Add title filter
+	if (search_params.title_filter) {
+		filters.push(`intitle:${search_params.title_filter}`);
+	}
+
+	// Add URL filter
+	if (search_params.url_filter) {
+		filters.push(`inurl:${search_params.url_filter}`);
+	}
+
+	// Add body filter
+	if (search_params.body_filter) {
+		filters.push(`inbody:${search_params.body_filter}`);
+	}
+
+	// Add page filter
+	if (search_params.page_filter) {
+		filters.push(`inpage:${search_params.page_filter}`);
+	}
+
+	// Add language filter
+	if (search_params.language) {
+		filters.push(`lang:${search_params.language}`);
+	}
+
+	// Add location filter
+	if (search_params.location) {
+		filters.push(`loc:${search_params.location}`);
+	}
+
+	// Add date filters
+	if (search_params.date_before && !options?.exclude_dates) {
+		filters.push(`before:${search_params.date_before}`);
+	}
+	if (search_params.date_after && !options?.exclude_dates) {
+		filters.push(`after:${search_params.date_after}`);
+	}
+
+	// Add exact phrases
+	if (search_params.exact_phrases?.length) {
+		filters.push(
+			...search_params.exact_phrases.map((phrase) => `"${phrase}"`),
+		);
+	}
+
+	// Add force include terms
+	if (search_params.force_include_terms?.length) {
+		filters.push(
+			...search_params.force_include_terms.map((term) => `+${term}`),
+		);
+	}
+
+	// Add exclude terms
+	if (search_params.exclude_terms?.length) {
+		filters.push(
+			...search_params.exclude_terms.map((term) => `-${term}`),
+		);
+	}
+
+	// Combine query with filters
+	if (filters.length > 0) {
+		query = `${query} ${filters.join(' ')}`;
+	}
+
+	return query;
+};
