@@ -56,7 +56,7 @@ export class BraveSearchProvider implements SearchProvider {
 					const domain_filter = include_domains
 						.map((domain) => `site:${domain}`)
 						.join(' OR ');
-					filters.push(`(${domain_filter})`);
+					filters.push(domain_filter);
 				}
 
 				const exclude_domains = [

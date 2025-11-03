@@ -60,7 +60,7 @@ export class KagiSearchProvider implements SearchProvider {
 					const domain_filter = include_domains
 						.map((domain) => `site:${domain}`)
 						.join(' OR ');
-					query = `${query} (${domain_filter})`;
+					query = `${query} ${domain_filter}`;
 				}
 
 				const exclude_domains = [
