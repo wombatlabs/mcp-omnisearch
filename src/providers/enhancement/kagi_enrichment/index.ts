@@ -6,6 +6,7 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
+	handle_provider_error,
 	retry_with_backoff,
 	sanitize_query,
 	validate_api_key,
@@ -138,16 +139,7 @@ export class KagiEnrichmentProvider implements EnhancementProvider {
 					source_provider: this.name,
 				};
 			} catch (error) {
-				if (error instanceof ProviderError) {
-					throw error;
-				}
-				throw new ProviderError(
-					ErrorType.API_ERROR,
-					`Failed to fetch: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
-					this.name,
-				);
+				handle_provider_error(error, this.name, 'enrich content');
 			}
 		};
 

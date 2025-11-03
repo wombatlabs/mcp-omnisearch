@@ -6,6 +6,7 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
+	handle_provider_error,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -156,16 +157,7 @@ export class ExaContentsProvider implements ProcessingProvider {
 					source_provider: this.name,
 				};
 			} catch (error) {
-				if (error instanceof ProviderError) {
-					throw error;
-				}
-				throw new ProviderError(
-					ErrorType.API_ERROR,
-					`Failed to extract contents: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
-					this.name,
-				);
+				handle_provider_error(error, this.name, 'extract contents');
 			}
 		};
 

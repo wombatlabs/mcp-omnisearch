@@ -53,6 +53,60 @@ export const handle_rate_limit = (
 	);
 };
 
+/**
+ * Standardized error handler for provider operations
+ * @param error The error that occurred
+ * @param provider_name The name of the provider
+ * @param operation The operation being performed (default: 'operation')
+ * @returns never - this function always throws
+ * @throws ProviderError
+ */
+export function handle_provider_error(
+	error: unknown,
+	provider_name: string,
+	operation: string = 'operation',
+): never {
+	if (error instanceof ProviderError) {
+		throw error;
+	}
+	throw new ProviderError(
+		ErrorType.API_ERROR,
+		`Failed to ${operation}: ${
+			error instanceof Error ? error.message : 'Unknown error'
+		}`,
+		provider_name,
+	);
+}
+
+/**
+ * Execute a provider operation with automatic retry logic and standardized error handling
+ * @param provider_name The name of the provider
+ * @param api_key_config The API key configuration
+ * @param operation The async operation to execute
+ * @param operation_name Description of the operation for error messages
+ * @returns Promise with the operation result
+ */
+export const execute_with_retry = async <T>(
+	provider_name: string,
+	api_key_config: string | undefined,
+	operation: (api_key: string) => Promise<T>,
+	operation_name: string = 'fetch data',
+): Promise<T> => {
+	const request = async () => {
+		const api_key = validate_api_key(api_key_config, provider_name);
+		try {
+			return await operation(api_key);
+		} catch (error) {
+			throw handle_provider_error(
+				error,
+				provider_name,
+				operation_name,
+			);
+		}
+	};
+	return retry_with_backoff(request);
+};
+
 export const sanitize_query = (query: string): string => {
 	return query.trim().replace(/[\n\r]+/g, ' ');
 };

@@ -1,3 +1,4 @@
+import { http_json } from '../../../common/http.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -5,10 +6,10 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
+	handle_provider_error,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
-import { http_json } from '../../../common/http.js';
 import { config } from '../../../config/env.js';
 
 interface ExaSimilarRequest {
@@ -181,16 +182,7 @@ export class ExaSimilarProvider implements ProcessingProvider {
 					source_provider: this.name,
 				};
 			} catch (error) {
-				if (error instanceof ProviderError) {
-					throw error;
-				}
-				throw new ProviderError(
-					ErrorType.API_ERROR,
-					`Failed to find similar pages: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
-					this.name,
-				);
+				handle_provider_error(error, this.name, 'find similar pages');
 			}
 		};
 

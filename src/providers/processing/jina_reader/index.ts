@@ -6,6 +6,7 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
+	handle_provider_error,
 	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
@@ -81,16 +82,7 @@ export class JinaReaderProvider implements ProcessingProvider {
 		try {
 			return await retry_with_backoff(process_url);
 		} catch (error: unknown) {
-			if (error instanceof ProviderError) {
-				throw error;
-			}
-			throw new ProviderError(
-				ErrorType.PROVIDER_ERROR,
-				`Failed to process content: ${
-					error instanceof Error ? error.message : String(error)
-				}`,
-				this.name,
-			);
+			handle_provider_error(error, this.name, 'process content');
 		}
 	}
 }

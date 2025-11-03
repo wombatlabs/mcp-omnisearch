@@ -1,16 +1,15 @@
+import { http_json } from '../../../common/http.js';
 import {
 	BaseSearchParams,
-	ErrorType,
-	ProviderError,
 	SearchProvider,
 	SearchResult,
 } from '../../../common/types.js';
 import {
+	handle_provider_error,
 	retry_with_backoff,
 	sanitize_query,
 	validate_api_key,
 } from '../../../common/utils.js';
-import { http_json } from '../../../common/http.js';
 import { config } from '../../../config/env.js';
 
 interface ExaSearchRequest {
@@ -116,15 +115,10 @@ export class ExaSearchProvider implements SearchProvider {
 					},
 				}));
 			} catch (error) {
-				if (error instanceof ProviderError) {
-					throw error;
-				}
-				throw new ProviderError(
-					ErrorType.API_ERROR,
-					`Failed to fetch: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
+				handle_provider_error(
+					error,
 					this.name,
+					'fetch search results',
 				);
 			}
 		};
