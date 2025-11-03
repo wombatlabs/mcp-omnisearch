@@ -1,4 +1,8 @@
-import { http_json } from '../../../common/http.js';
+import {
+	make_firecrawl_request,
+	validate_firecrawl_response,
+	validate_firecrawl_urls,
+} from '../../../common/firecrawl_utils.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -6,7 +10,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -28,16 +31,8 @@ export class FirecrawlMapProvider implements ProcessingProvider {
 		extract_depth: 'basic' | 'advanced' = 'basic',
 	): Promise<ProcessingResult> {
 		// Map only works with a single URL (the starting point)
-		const map_url = Array.isArray(url) ? url[0] : url;
-
-		// Validate URL
-		if (!is_valid_url(map_url)) {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				`Invalid URL provided: ${map_url}`,
-				this.name,
-			);
-		}
+		const urls = validate_firecrawl_urls(url, this.name);
+		const map_url = urls[0];
 
 		const map_request = async () => {
 			const api_key = validate_api_key(
@@ -47,35 +42,25 @@ export class FirecrawlMapProvider implements ProcessingProvider {
 
 			try {
 				// Start the map operation
-				const map_data = await http_json<FirecrawlMapResponse>(
-					this.name,
-					config.processing.firecrawl_map.base_url,
-					{
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${api_key}`,
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
+				const map_data =
+					await make_firecrawl_request<FirecrawlMapResponse>(
+						this.name,
+						config.processing.firecrawl_map.base_url,
+						api_key,
+						{
 							url: map_url,
 							limit: extract_depth === 'advanced' ? 200 : 50,
 							ignoreSitemap: false,
 							includeSubdomains: false,
-						}),
-						signal: AbortSignal.timeout(
-							config.processing.firecrawl_map.timeout,
-						),
-					},
-				);
-
-				// Check if there was an error in the response
-				if (!map_data.success || map_data.error) {
-					throw new ProviderError(
-						ErrorType.PROVIDER_ERROR,
-						`Error mapping website: ${map_data.error || 'Unknown error'}`,
-						this.name,
+						},
+						config.processing.firecrawl_map.timeout,
 					);
-				}
+
+				validate_firecrawl_response(
+					map_data,
+					this.name,
+					'Error mapping website',
+				);
 
 				// Check if we have links
 				if (!map_data.links || map_data.links.length === 0) {

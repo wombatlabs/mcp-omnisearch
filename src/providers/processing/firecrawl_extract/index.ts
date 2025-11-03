@@ -1,4 +1,9 @@
-import { http_json } from '../../../common/http.js';
+import {
+	make_firecrawl_request,
+	poll_firecrawl_job,
+	validate_firecrawl_response,
+	validate_firecrawl_urls,
+} from '../../../common/firecrawl_utils.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -6,7 +11,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -36,16 +40,8 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 		extract_depth: 'basic' | 'advanced' = 'basic',
 	): Promise<ProcessingResult> {
 		// Extract works with a single URL at a time
-		const extract_url = Array.isArray(url) ? url[0] : url;
-
-		// Validate URL
-		if (!is_valid_url(extract_url)) {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				`Invalid URL provided: ${extract_url}`,
-				this.name,
-			);
-		}
+		const urls = validate_firecrawl_urls(url, this.name);
+		const extract_url = urls[0];
 
 		const extract_request = async () => {
 			const api_key = validate_api_key(
@@ -62,94 +58,42 @@ export class FirecrawlExtractProvider implements ProcessingProvider {
 
 				// Start the extraction
 				const extract_data =
-					await http_json<FirecrawlExtractResponse>(
+					await make_firecrawl_request<FirecrawlExtractResponse>(
 						this.name,
 						config.processing.firecrawl_extract.base_url,
+						api_key,
 						{
-							method: 'POST',
-							headers: {
-								Authorization: `Bearer ${api_key}`,
-								'Content-Type': 'application/json',
+							urls: [extract_url],
+							prompt: extraction_prompt,
+							showSources: true,
+							scrapeOptions: {
+								formats: ['markdown'],
+								onlyMainContent: true,
+								waitFor: extract_depth === 'advanced' ? 5000 : 2000,
 							},
-							body: JSON.stringify({
-								urls: [extract_url],
-								prompt: extraction_prompt,
-								showSources: true,
-								scrapeOptions: {
-									formats: ['markdown'],
-									onlyMainContent: true,
-									waitFor: extract_depth === 'advanced' ? 5000 : 2000,
-								},
-							}),
-							signal: AbortSignal.timeout(
-								config.processing.firecrawl_extract.timeout,
-							),
 						},
+						config.processing.firecrawl_extract.timeout,
 					);
 
-				// Check if there was an error in the response
-				if (!extract_data.success || extract_data.error) {
-					throw new ProviderError(
-						ErrorType.PROVIDER_ERROR,
-						`Error starting extraction: ${extract_data.error || 'Unknown error'}`,
-						this.name,
-					);
-				}
+				validate_firecrawl_response(
+					extract_data,
+					this.name,
+					'Error starting extraction',
+				);
 
-				// For extractions, we always need to poll for results
-				const extract_id = extract_data.id;
-				let status_data: FirecrawlExtractStatusResponse | null = null;
-				let attempts = 0;
-				const max_attempts = 15; // More attempts for extraction as it can take longer
+				// Poll for extraction completion
+				const status_data =
+					await poll_firecrawl_job<FirecrawlExtractStatusResponse>({
+						provider_name: this.name,
+						status_url: `${config.processing.firecrawl_extract.base_url}/${extract_data.id}`,
+						api_key,
+						max_attempts: 15,
+						poll_interval: 3000,
+						timeout: 30000,
+					});
 
-				// Poll for results
-				while (attempts < max_attempts) {
-					attempts++;
-					await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds between polls
-
-					let status_result: FirecrawlExtractStatusResponse;
-					try {
-						status_result =
-							await http_json<FirecrawlExtractStatusResponse>(
-								this.name,
-								`${config.processing.firecrawl_extract.base_url}/${extract_id}`,
-								{
-									method: 'GET',
-									headers: { Authorization: `Bearer ${api_key}` },
-									signal: AbortSignal.timeout(30000),
-								},
-							);
-					} catch {
-						continue; // skip this poll attempt on transient HTTP errors
-					}
-
-					if (!status_result.success) {
-						throw new ProviderError(
-							ErrorType.PROVIDER_ERROR,
-							`Error checking extraction status: ${status_result.error || 'Unknown error'}`,
-							this.name,
-						);
-					}
-
-					if (
-						status_result.status === 'completed' &&
-						status_result.data
-					) {
-						status_data = status_result;
-						break;
-					} else if (status_result.status === 'error') {
-						throw new ProviderError(
-							ErrorType.PROVIDER_ERROR,
-							`Error extracting data: ${status_result.error || 'Unknown error'}`,
-							this.name,
-						);
-					}
-
-					// If still processing, continue polling
-				}
-
-				// If we've reached max attempts without completion
-				if (!status_data || !status_data.data) {
+				// Verify we have data
+				if (!status_data.data) {
 					throw new ProviderError(
 						ErrorType.PROVIDER_ERROR,
 						'No data extracted from URL',

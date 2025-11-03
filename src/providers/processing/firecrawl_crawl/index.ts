@@ -1,4 +1,9 @@
-import { http_json } from '../../../common/http.js';
+import {
+	make_firecrawl_request,
+	poll_firecrawl_job,
+	validate_firecrawl_response,
+	validate_firecrawl_urls,
+} from '../../../common/firecrawl_utils.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -6,7 +11,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -53,16 +57,8 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 		extract_depth: 'basic' | 'advanced' = 'basic',
 	): Promise<ProcessingResult> {
 		// Crawl only works with a single URL (the starting point)
-		const crawl_url = Array.isArray(url) ? url[0] : url;
-
-		// Validate URL
-		if (!is_valid_url(crawl_url)) {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				`Invalid URL provided: ${crawl_url}`,
-				this.name,
-			);
-		}
+		const urls = validate_firecrawl_urls(url, this.name);
+		const crawl_url = urls[0];
 
 		const crawl_request = async () => {
 			const api_key = validate_api_key(
@@ -72,16 +68,12 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 
 			try {
 				// Start the crawl
-				const crawl_data = await http_json<FirecrawlCrawlResponse>(
-					this.name,
-					config.processing.firecrawl_crawl.base_url,
-					{
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${api_key}`,
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
+				const crawl_data =
+					await make_firecrawl_request<FirecrawlCrawlResponse>(
+						this.name,
+						config.processing.firecrawl_crawl.base_url,
+						api_key,
+						{
 							url: crawl_url,
 							scrapeOptions: {
 								formats: ['markdown'],
@@ -89,84 +81,32 @@ export class FirecrawlCrawlProvider implements ProcessingProvider {
 							},
 							maxDepth: extract_depth === 'advanced' ? 3 : 1,
 							limit: extract_depth === 'advanced' ? 50 : 20,
-						}),
-						signal: AbortSignal.timeout(
-							config.processing.firecrawl_crawl.timeout,
-						),
-					},
+						},
+						config.processing.firecrawl_crawl.timeout,
+					);
+
+				validate_firecrawl_response(
+					crawl_data,
+					this.name,
+					'Error starting crawl',
 				);
 
-				// Check if there was an error in the response
-				if (!crawl_data.success || crawl_data.error) {
+				// Poll for crawl completion
+				const status_data =
+					await poll_firecrawl_job<FirecrawlCrawlStatusResponse>({
+						provider_name: this.name,
+						status_url: `${config.processing.firecrawl_crawl.base_url}/${crawl_data.id}`,
+						api_key,
+						max_attempts: 20,
+						poll_interval: 5000,
+						timeout: 30000,
+					});
+
+				// Verify we have data
+				if (!status_data.data || status_data.data.length === 0) {
 					throw new ProviderError(
 						ErrorType.PROVIDER_ERROR,
-						`Error starting crawl: ${crawl_data.error || 'Unknown error'}`,
-						this.name,
-					);
-				}
-
-				// For crawls, we always need to poll for results
-				const crawl_id = crawl_data.id;
-				let status_data: FirecrawlCrawlStatusResponse | null = null;
-				let attempts = 0;
-				const max_attempts = 20; // More attempts for crawling
-
-				// Poll for results
-				while (attempts < max_attempts) {
-					attempts++;
-					await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds between polls
-
-					let status_result: FirecrawlCrawlStatusResponse;
-					try {
-						status_result =
-							await http_json<FirecrawlCrawlStatusResponse>(
-								this.name,
-								`${config.processing.firecrawl_crawl.base_url}/${crawl_id}`,
-								{
-									method: 'GET',
-									headers: { Authorization: `Bearer ${api_key}` },
-									signal: AbortSignal.timeout(30000),
-								},
-							);
-					} catch {
-						continue; // skip this poll attempt on transient HTTP errors
-					}
-
-					if (!status_result.success) {
-						throw new ProviderError(
-							ErrorType.PROVIDER_ERROR,
-							`Error checking crawl status: ${status_result.error || 'Unknown error'}`,
-							this.name,
-						);
-					}
-
-					if (
-						status_result.status === 'completed' &&
-						status_result.data &&
-						status_result.data.length > 0
-					) {
-						status_data = status_result;
-						break;
-					} else if (status_result.status === 'error') {
-						throw new ProviderError(
-							ErrorType.PROVIDER_ERROR,
-							`Error crawling website: ${status_result.error || 'Unknown error'}`,
-							this.name,
-						);
-					}
-
-					// If still processing, continue polling
-				}
-
-				// If we've reached max attempts without completion
-				if (
-					!status_data ||
-					!status_data.data ||
-					status_data.data.length === 0
-				) {
-					throw new ProviderError(
-						ErrorType.PROVIDER_ERROR,
-						'Crawl timed out or returned no data - try again later or with a smaller scope',
+						'Crawl returned no data',
 						this.name,
 					);
 				}

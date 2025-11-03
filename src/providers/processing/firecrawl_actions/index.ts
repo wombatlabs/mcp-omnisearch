@@ -1,4 +1,8 @@
-import { http_json } from '../../../common/http.js';
+import {
+	make_firecrawl_request,
+	validate_firecrawl_response,
+	validate_firecrawl_urls,
+} from '../../../common/firecrawl_utils.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -6,7 +10,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -58,16 +61,8 @@ export class FirecrawlActionsProvider implements ProcessingProvider {
 		extract_depth: 'basic' | 'advanced' = 'basic',
 	): Promise<ProcessingResult> {
 		// Actions works with a single URL
-		const actions_url = Array.isArray(url) ? url[0] : url;
-
-		// Validate URL
-		if (!is_valid_url(actions_url)) {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				`Invalid URL provided: ${actions_url}`,
-				this.name,
-			);
-		}
+		const urls = validate_firecrawl_urls(url, this.name);
+		const actions_url = urls[0];
 
 		const actions_request = async () => {
 			const api_key = validate_api_key(
@@ -103,71 +98,60 @@ export class FirecrawlActionsProvider implements ProcessingProvider {
 
 				// Start the actions
 				const actions_data =
-					await http_json<FirecrawlActionsResponse>(
+					await make_firecrawl_request<FirecrawlActionsResponse>(
 						this.name,
 						config.processing.firecrawl_actions.base_url,
+						api_key,
 						{
-							method: 'POST',
-							headers: {
-								Authorization: `Bearer ${api_key}`,
-								'Content-Type': 'application/json',
-							},
-							body: JSON.stringify({
-								url: actions_url,
-								formats: ['markdown', 'screenshot'],
-								actions: actions.map((action) => {
-									// Convert our action format to Firecrawl's action format
-									switch (action.type) {
-										case 'wait':
-											return {
-												type: 'wait',
-												milliseconds: action.duration || 1000,
-												selector: action.selector,
-											};
-										case 'scroll':
-											return {
-												type: 'scroll',
-												// Firecrawl might use different parameters for scroll
-												// Adjust as needed based on their documentation
-											};
-										case 'click':
-											return {
-												type: 'click',
-												selector: action.selector,
-												x: action.x,
-												y: action.y,
-											};
-										case 'type':
-											return {
-												type: 'type',
-												selector: action.selector,
-												text: action.text || '',
-											};
-										case 'select':
-											return {
-												type: 'select',
-												selector: action.selector,
-												value: action.value || '',
-											};
-										default:
-											return action;
-									}
-								}),
+							url: actions_url,
+							formats: ['markdown', 'screenshot'],
+							actions: actions.map((action) => {
+								// Convert our action format to Firecrawl's action format
+								switch (action.type) {
+									case 'wait':
+										return {
+											type: 'wait',
+											milliseconds: action.duration || 1000,
+											selector: action.selector,
+										};
+									case 'scroll':
+										return {
+											type: 'scroll',
+											// Firecrawl might use different parameters for scroll
+											// Adjust as needed based on their documentation
+										};
+									case 'click':
+										return {
+											type: 'click',
+											selector: action.selector,
+											x: action.x,
+											y: action.y,
+										};
+									case 'type':
+										return {
+											type: 'type',
+											selector: action.selector,
+											text: action.text || '',
+										};
+									case 'select':
+										return {
+											type: 'select',
+											selector: action.selector,
+											value: action.value || '',
+										};
+									default:
+										return action;
+								}
 							}),
-							signal: AbortSignal.timeout(
-								config.processing.firecrawl_actions.timeout,
-							),
 						},
+						config.processing.firecrawl_actions.timeout,
 					);
 
-				// Check if there was an error in the response
-				if (!actions_data.success || actions_data.error) {
-					throw new ProviderError(
-						ErrorType.PROVIDER_ERROR,
-						`Error performing actions: ${actions_data.error || 'Unknown error'}`,
-						this.name,
-					);
-				}
+				validate_firecrawl_response(
+					actions_data,
+					this.name,
+					'Error performing actions',
+				);
 
 				// Check if we have data
 				if (!actions_data.data) {

@@ -1,4 +1,10 @@
-import { http_json } from '../../../common/http.js';
+import {
+	aggregate_url_results,
+	make_firecrawl_request,
+	validate_firecrawl_response,
+	validate_firecrawl_urls,
+	type ProcessedUrlResult,
+} from '../../../common/firecrawl_utils.js';
 import {
 	ErrorType,
 	ProcessingProvider,
@@ -6,7 +12,6 @@ import {
 	ProviderError,
 } from '../../../common/types.js';
 import {
-	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
 } from '../../../common/utils.js';
@@ -44,18 +49,7 @@ export class FirecrawlScrapeProvider implements ProcessingProvider {
 		url: string | string[],
 		extract_depth: 'basic' | 'advanced' = 'basic',
 	): Promise<ProcessingResult> {
-		const urls = Array.isArray(url) ? url : [url];
-
-		// Validate all URLs
-		for (const u of urls) {
-			if (!is_valid_url(u)) {
-				throw new ProviderError(
-					ErrorType.INVALID_INPUT,
-					`Invalid URL provided: ${u}`,
-					this.name,
-				);
-			}
-		}
+		const urls = validate_firecrawl_urls(url, this.name);
 
 		const scrape_request = async () => {
 			const api_key = validate_api_key(
@@ -65,41 +59,29 @@ export class FirecrawlScrapeProvider implements ProcessingProvider {
 
 			try {
 				// Process each URL and collect results
-				const results = await Promise.all(
+				const results: ProcessedUrlResult[] = await Promise.all(
 					urls.map(async (single_url) => {
 						try {
-							const data = await http_json<FirecrawlScrapeResponse>(
-								this.name,
-								config.processing.firecrawl_scrape.base_url,
-								{
-									method: 'POST',
-									headers: {
-										Authorization: `Bearer ${api_key}`,
-										'Content-Type': 'application/json',
-									},
-									body: JSON.stringify({
+							const data =
+								await make_firecrawl_request<FirecrawlScrapeResponse>(
+									this.name,
+									config.processing.firecrawl_scrape.base_url,
+									api_key,
+									{
 										url: single_url,
 										formats: ['markdown'],
 										onlyMainContent: true,
 										waitFor:
 											extract_depth === 'advanced' ? 5000 : 2000,
-									}),
-									signal: AbortSignal.timeout(
-										config.processing.firecrawl_scrape.timeout,
-									),
-								},
-							);
-
-							// Check if there was an error in the response
-							if (!data.success || data.error) {
-								throw new ProviderError(
-									ErrorType.PROVIDER_ERROR,
-									`Error scraping URL: ${
-										data.error || 'Unknown error'
-									}`,
-									this.name,
+									},
+									config.processing.firecrawl_scrape.timeout,
 								);
-							}
+
+							validate_firecrawl_response(
+								data,
+								this.name,
+								'Error scraping URL',
+							);
 
 							// Check if we have data
 							if (!data.data) {
@@ -152,54 +134,12 @@ export class FirecrawlScrapeProvider implements ProcessingProvider {
 					}),
 				);
 
-				// Filter successful and failed results
-				const successful_results = results.filter((r) => r.success);
-				const failed_urls = results
-					.filter((r) => !r.success)
-					.map((r) => r.url);
-
-				// If all URLs failed, throw an error
-				if (successful_results.length === 0) {
-					throw new ProviderError(
-						ErrorType.PROVIDER_ERROR,
-						'Failed to extract content from all URLs',
-						this.name,
-					);
-				}
-
-				// Map results to raw_contents array
-				const raw_contents = successful_results.map((result) => ({
-					url: result.url,
-					content: result.content,
-				}));
-
-				// Combine all results into a single content string
-				const combined_content = raw_contents
-					.map((result) => result.content)
-					.join('\n\n');
-
-				// Calculate total word count
-				const word_count = combined_content
-					.split(/\s+/)
-					.filter(Boolean).length;
-
-				// Get title from first successful result if available
-				const title = successful_results[0]?.metadata?.title;
-
-				return {
-					content: combined_content,
-					raw_contents,
-					metadata: {
-						title,
-						word_count,
-						failed_urls:
-							failed_urls.length > 0 ? failed_urls : undefined,
-						urls_processed: urls.length,
-						successful_extractions: successful_results.length,
-						extract_depth,
-					},
-					source_provider: this.name,
-				};
+				return aggregate_url_results(
+					results,
+					this.name,
+					urls,
+					extract_depth,
+				);
 			} catch (error) {
 				if (error instanceof ProviderError) {
 					throw error;
