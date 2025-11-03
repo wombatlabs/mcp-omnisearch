@@ -1,5 +1,18 @@
 # mcp-omnisearch
 
+## 0.0.18
+
+### Patch Changes
+
+- 09e7fd7: Deduplicate Firecrawl providers with shared utility
+  functions
+- 2efd54e: Deduplicate query construction logic between Brave and Kagi
+  providers
+- 9145b10: Fix site: operator by removing parentheses in Brave and
+  Kagi query construction
+- be9a14d: Refactor: consolidate error handling and utilities
+- 4746562: Refactor: standardize error handling
+
 ## 0.0.17
 
 ### Patch Changes
