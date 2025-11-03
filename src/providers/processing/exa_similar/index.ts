@@ -9,6 +9,7 @@ import {
 	handle_provider_error,
 	retry_with_backoff,
 	validate_api_key,
+	validate_processing_urls,
 } from '../../../common/utils.js';
 import { config } from '../../../config/env.js';
 
@@ -68,15 +69,7 @@ export class ExaSimilarProvider implements ProcessingProvider {
 		}
 
 		// Validate URL format
-		try {
-			new URL(target_url);
-		} catch {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				'Invalid URL format',
-				this.name,
-			);
-		}
+		validate_processing_urls(target_url, this.name);
 
 		const process_request = async () => {
 			try {

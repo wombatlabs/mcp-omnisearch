@@ -1,29 +1,17 @@
 import { http_json } from './http.js';
 import { ErrorType, ProviderError } from './types.js';
-import { is_valid_url } from './utils.js';
+import {
+	aggregate_url_results as aggregate_url_results_common,
+	validate_processing_urls,
+	type ProcessedUrlResult as ProcessedUrlResultCommon,
+} from './utils.js';
 
 /**
  * Validate URLs for Firecrawl processing
+ * @deprecated Use validate_processing_urls from utils.ts instead
  * Throws ProviderError if any URL is invalid
  */
-export const validate_firecrawl_urls = (
-	url: string | string[],
-	provider_name: string,
-): string[] => {
-	const urls = Array.isArray(url) ? url : [url];
-
-	for (const u of urls) {
-		if (!is_valid_url(u)) {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				`Invalid URL provided: ${u}`,
-				provider_name,
-			);
-		}
-	}
-
-	return urls;
-};
+export const validate_firecrawl_urls = validate_processing_urls;
 
 /**
  * Make a Firecrawl API request with standard headers and error handling
@@ -64,72 +52,18 @@ export const validate_firecrawl_response = (
 	}
 };
 
-export interface ProcessedUrlResult {
-	url: string;
-	content: string;
-	metadata?: any;
-	success: boolean;
-	error?: string;
-}
+/**
+ * Interface for processed URL results
+ * @deprecated Use ProcessedUrlResult from utils.ts instead
+ */
+export type ProcessedUrlResult = ProcessedUrlResultCommon;
 
 /**
  * Aggregate results from multiple URL processing attempts
+ * @deprecated Use aggregate_url_results from utils.ts instead
  * Returns combined content and metadata, throws if all URLs failed
  */
-export const aggregate_url_results = (
-	results: ProcessedUrlResult[],
-	provider_name: string,
-	urls: string[],
-	extract_depth: 'basic' | 'advanced',
-) => {
-	// Filter successful and failed results
-	const successful_results = results.filter((r) => r.success);
-	const failed_urls = results
-		.filter((r) => !r.success)
-		.map((r) => r.url);
-
-	// If all URLs failed, throw an error
-	if (successful_results.length === 0) {
-		throw new ProviderError(
-			ErrorType.PROVIDER_ERROR,
-			'Failed to extract content from all URLs',
-			provider_name,
-		);
-	}
-
-	// Map results to raw_contents array
-	const raw_contents = successful_results.map((result) => ({
-		url: result.url,
-		content: result.content,
-	}));
-
-	// Combine all results into a single content string
-	const combined_content = raw_contents
-		.map((result) => result.content)
-		.join('\n\n');
-
-	// Calculate total word count
-	const word_count = combined_content
-		.split(/\s+/)
-		.filter(Boolean).length;
-
-	// Get title from first successful result if available
-	const title = successful_results[0]?.metadata?.title;
-
-	return {
-		content: combined_content,
-		raw_contents,
-		metadata: {
-			title,
-			word_count,
-			failed_urls: failed_urls.length > 0 ? failed_urls : undefined,
-			urls_processed: urls.length,
-			successful_extractions: successful_results.length,
-			extract_depth,
-		},
-		source_provider: provider_name,
-	};
-};
+export const aggregate_url_results = aggregate_url_results_common;
 
 export interface PollingConfig {
 	provider_name: string;

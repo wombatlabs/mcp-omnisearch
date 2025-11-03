@@ -7,9 +7,9 @@ import {
 } from '../../../common/types.js';
 import {
 	handle_provider_error,
-	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
+	validate_processing_urls,
 } from '../../../common/utils.js';
 import { config } from '../../../config/env.js';
 
@@ -35,18 +35,7 @@ export class TavilyExtractProvider implements ProcessingProvider {
 		url: string | string[],
 		extract_depth: 'basic' | 'advanced' = 'basic',
 	): Promise<ProcessingResult> {
-		const urls = Array.isArray(url) ? url : [url];
-
-		// Validate all URLs
-		for (const u of urls) {
-			if (!is_valid_url(u)) {
-				throw new ProviderError(
-					ErrorType.INVALID_INPUT,
-					`Invalid URL provided: ${u}`,
-					this.name,
-				);
-			}
-		}
+		const urls = validate_processing_urls(url, this.name);
 
 		const extract_request = async () => {
 			const api_key = validate_api_key(

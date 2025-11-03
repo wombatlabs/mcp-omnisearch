@@ -155,6 +155,32 @@ export const is_valid_url = (url: string): boolean => {
 	}
 };
 
+/**
+ * Validate URLs for processing providers
+ * Throws ProviderError if any URL is invalid
+ * @param url Single URL or array of URLs to validate
+ * @param provider_name Name of the provider for error messages
+ * @returns Array of validated URLs
+ */
+export const validate_processing_urls = (
+	url: string | string[],
+	provider_name: string,
+): string[] => {
+	const urls = Array.isArray(url) ? url : [url];
+
+	for (const u of urls) {
+		if (!is_valid_url(u)) {
+			throw new ProviderError(
+				ErrorType.INVALID_INPUT,
+				`Invalid URL provided: ${u}`,
+				provider_name,
+			);
+		}
+	}
+
+	return urls;
+};
+
 export const delay = (ms: number): Promise<void> => {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 };
@@ -471,3 +497,140 @@ export const build_query_with_operators = (
 
 	return query;
 };
+
+/**
+ * Interface for processed URL results from processing providers
+ */
+export interface ProcessedUrlResult {
+	url: string;
+	content: string;
+	metadata?: any;
+	success: boolean;
+	error?: string;
+}
+
+/**
+ * Aggregate results from multiple URL processing attempts
+ * Returns combined content and metadata, throws if all URLs failed
+ * @param results Array of processed URL results
+ * @param provider_name Name of the provider for error messages
+ * @param urls Original URLs that were processed
+ * @param extract_depth Extraction depth level
+ * @returns Processing result with combined content and metadata
+ */
+export const aggregate_url_results = (
+	results: ProcessedUrlResult[],
+	provider_name: string,
+	urls: string[],
+	extract_depth: 'basic' | 'advanced',
+) => {
+	// Filter successful and failed results
+	const successful_results = results.filter((r) => r.success);
+	const failed_urls = results
+		.filter((r) => !r.success)
+		.map((r) => r.url);
+
+	// If all URLs failed, throw an error
+	if (successful_results.length === 0) {
+		throw new ProviderError(
+			ErrorType.PROVIDER_ERROR,
+			'Failed to extract content from all URLs',
+			provider_name,
+		);
+	}
+
+	// Map results to raw_contents array
+	const raw_contents = successful_results.map((result) => ({
+		url: result.url,
+		content: result.content,
+	}));
+
+	// Combine all results into a single content string
+	const combined_content = raw_contents
+		.map((result) => result.content)
+		.join('\n\n');
+
+	// Calculate total word count
+	const word_count = combined_content
+		.split(/\s+/)
+		.filter(Boolean).length;
+
+	// Get title from first successful result if available
+	const title = successful_results[0]?.metadata?.title;
+
+	return {
+		content: combined_content,
+		raw_contents,
+		metadata: {
+			title,
+			word_count,
+			failed_urls: failed_urls.length > 0 ? failed_urls : undefined,
+			urls_processed: urls.length,
+			successful_extractions: successful_results.length,
+			extract_depth,
+		},
+		source_provider: provider_name,
+	};
+};
+
+/**
+ * Format AI response with answer and sources
+ * Standardizes the response structure for AI providers
+ * @param provider_name Name of the provider
+ * @param provider_url URL of the provider
+ * @param answer Main answer text
+ * @param sources Optional array of sources
+ * @param limit Optional limit on number of results
+ * @returns Array of SearchResult objects
+ */
+export const format_ai_response = (
+	provider_name: string,
+	provider_url: string,
+	answer: string,
+	sources?: Array<{ title: string; url: string; content: string }>,
+	limit?: number,
+) => {
+	const results = [
+		{
+			title: `${provider_name} Response`,
+			url: provider_url,
+			snippet: answer,
+			source_provider: provider_name,
+		},
+	];
+
+	if (sources?.length) {
+		results.push(
+			...sources.map((source) => ({
+				title: source.title,
+				url: source.url,
+				snippet: source.content,
+				source_provider: provider_name,
+			})),
+		);
+	}
+
+	return results
+		.filter((r) => r.title && r.url && r.snippet)
+		.slice(0, limit || results.length);
+};
+
+/**
+ * Create standard Bearer token authorization headers
+ * @param api_key The API key for authorization
+ * @returns Headers object with Bearer authorization
+ */
+export const create_bearer_headers = (api_key: string) => ({
+	Authorization: `Bearer ${api_key}`,
+	'Content-Type': 'application/json',
+});
+
+/**
+ * Create Bot token authorization headers (used by Kagi)
+ * @param api_key The API key for authorization
+ * @returns Headers object with Bot authorization
+ */
+export const create_bot_headers = (api_key: string) => ({
+	Authorization: `Bot ${api_key}`,
+	'Content-Type': 'application/json',
+});

@@ -7,9 +7,9 @@ import {
 } from '../../../common/types.js';
 import {
 	handle_provider_error,
-	is_valid_url,
 	retry_with_backoff,
 	validate_api_key,
+	validate_processing_urls,
 } from '../../../common/utils.js';
 import { config } from '../../../config/env.js';
 
@@ -27,13 +27,8 @@ export class JinaReaderProvider implements ProcessingProvider {
 	}
 
 	async process_content(url: string): Promise<ProcessingResult> {
-		if (!is_valid_url(url)) {
-			throw new ProviderError(
-				ErrorType.INVALID_INPUT,
-				'Invalid URL provided',
-				this.name,
-			);
-		}
+		// Validate URL
+		validate_processing_urls(url, this.name);
 
 		const process_url = async () => {
 			const api_key = validate_api_key(
