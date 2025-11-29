@@ -9,30 +9,30 @@ importers:
   .:
     dependencies:
       '@tmcp/adapter-valibot':
-        specifier: ^0.1.4
+        specifier: ^0.1.5
         version: 0.1.5(tmcp@1.18.1(typescript@5.9.3))(valibot@1.2.0(typescript@5.9.3))
       '@tmcp/transport-stdio':
-        specifier: ^0.4.0
+        specifier: ^0.4.1
         version: 0.4.1(tmcp@1.18.1(typescript@5.9.3))
       octokit:
         specifier: ^5.0.5
         version: 5.0.5
       tmcp:
-        specifier: ^1.16.2
+        specifier: ^1.18.1
         version: 1.18.1(typescript@5.9.3)
       valibot:
-        specifier: ^1.1.0
+        specifier: ^1.2.0
         version: 1.2.0(typescript@5.9.3)
     devDependencies:
       '@changesets/cli':
-        specifier: ^2.29.7
+        specifier: ^2.29.8
         version: 2.29.8(@types/node@24.10.1)
       '@types/node':
-        specifier: ^24.10.0
+        specifier: ^24.10.1
         version: 24.10.1
       prettier:
-        specifier: ^3.6.2
-        version: 3.7.1
+        specifier: ^3.7.2
+        version: 3.7.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -486,8 +486,8 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
 
-  prettier@3.7.1:
-    resolution: {integrity: sha512-RWKXE4qB3u5Z6yz7omJkjWwmTfLdcbv44jUVHC5NpfXwFGzvpQM798FGv/6WNK879tc+Cn0AAyherCl1KjbyZQ==}
+  prettier@3.7.2:
+    resolution: {integrity: sha512-n3HV2J6QhItCXndGa3oMWvWFAgN1ibnS7R9mt6iokScBOC0Ul9/iZORmU2IWUMcyAQaMPjTlY3uT34TqocUxMA==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -1160,7 +1160,7 @@ snapshots:
 
   prettier@2.8.8: {}
 
-  prettier@3.7.1: {}
+  prettier@3.7.2: {}
 
   quansync@0.2.11: {}
 
